@@ -34,8 +34,8 @@ body{margin:0;min-height:100vh;background:var(--cyan);color:var(--ink);
 .monthpill label{margin:0;color:var(--muted);font-weight:800;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase}
 .monthpill input{width:auto;border:1.5px solid var(--line);border-radius:999px;padding:7px 12px}
 .hnote{color:rgba(14,54,70,.65);font-size:11.5px;font-weight:500;margin:8px 0 0}
-.userbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
-.who{font-size:12px;color:rgba(14,54,70,.72);font-weight:600}
+.topright{position:fixed;top:16px;right:18px;z-index:30}
+.who{display:none}
 
 /* section headers */
 .sechead{display:flex;align-items:center;gap:10px;margin:30px 0 12px;flex-wrap:wrap}
@@ -164,13 +164,12 @@ details .panel{margin-top:12px}
 
 <!-- ================= APP ================= -->
 <div id="app"><div class="wrap">
+ <div class="topright"><span class="who" id="whoami"></span><button class="btn-ghost" id="signoutBtn" style="padding:8px 16px">Sign out</button></div>
  <header class="hdr">
   <div class="hrow"><div class="rbadge">₹</div><h1>Voucher &amp; Reward Cap Tracker</h1></div>
   <div class="hrule"></div>
-  <p class="hsub">Log each purchase once — it tracks your monthly HDFC voucher caps and Amex milestones, and warns before a purchase overshoots a cap. Synced to your account.</p>
   <div class="monthpill"><label for="monthPick">Tracking month</label><input type="month" id="monthPick"></div>
   <p class="hnote" id="monthNote"></p>
-  <div class="userbar"><span class="who" id="whoami"></span><button class="btn-ghost" id="signoutBtn" style="padding:8px 16px">Sign out</button></div>
  </header>
 
  <div id="cfgWarn">⚠ Firebase isn't configured yet. Paste your project's config into <b>index.html</b> (the <code>firebaseConfig</code> object) and redeploy.</div>
