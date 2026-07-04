@@ -485,7 +485,8 @@ $("testBtn").onclick=()=>{
   const list=[];
   CARDS.filter(c=>c.kind==="voucher").forEach(c=>{
    const s=voucherStats(c);
-   list.push({card:c,type:"flat",filled:s.spent,cap:s.capSpend,rate:s.backPct/100,alloc:0});
+   list.push({card:c,type:"flat",filled:s.spent,cap:s.capSpend,rate:s.backPct/100,alloc:0,
+     nonITbase:c.itThreshold?nonITSpend(c):0});
   });
   CARDS.filter(c=>c.kind==="amex_monthly").forEach(c=>{
    const ps=amexMonthAll(c.id);
@@ -502,13 +503,19 @@ $("testBtn").onclick=()=>{
   while(remaining>0.5 && guard++<300){
    let best=null;
    cands.forEach(x=>{
-    let slice,rate;
-    if(x.type==="flat"){ slice=Math.max(0,x.cap-(x.filled+x.alloc)); if(slice<=0)return; rate=x.rate; }
-    else{ const cur=x.filled+x.alloc; const nextM=x.milestones.find(m=>cur<m.at);
+    let slice,rate,pri=0;
+    if(x.type==="flat"){
+     slice=Math.max(0,x.cap-(x.filled+x.alloc)); if(slice<=0)return; rate=x.rate;
+     if(x.card.itThreshold){                        // BizPower: jump ahead of Diners ONLY for the spend still needed to hit ₹25k non-IT unlock
+      const gap=Math.max(0,x.card.itThreshold-(x.nonITbase+x.alloc));
+      if(gap>0){ pri=1; slice=Math.min(slice,gap); }
+     }
+    } else {
+     const cur=x.filled+x.alloc; const nextM=x.milestones.find(m=>cur<m.at);
      if(nextM){ const toM=nextM.at-cur; if(remaining>=toM){slice=toM;rate=x.baseRate+nextM.bonus/toM;} else {slice=remaining;rate=x.baseRate;} }
-     else {slice=remaining;rate=x.baseRate;} }
+     else {slice=remaining;rate=x.baseRate;}
+    }
     const use=Math.min(slice,remaining); if(use<=0)return;
-    const pri=x.card.priority||0;   // tie-break: BizPower before Diners (its vouchers also clear the ₹25k non-IT unlock)
     if(!best || rate>best.rate+1e-9 || (Math.abs(rate-best.rate)<=1e-9 && pri>best.pri)){best={x,use,rate,pri};}
    });
    if(!best)break;
