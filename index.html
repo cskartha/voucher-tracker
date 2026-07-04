@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f2a4a">
+<title>Voucher &amp; Reward Cap Tracker</title>
+<style>
+:root{color-scheme:light;
+ --navy:#0f2a4a; --navy2:#1c3d63; --gold:#b8892b; --bg:#f6f7f9; --card:#ffffff;
+ --line:#e4e7ec; --txt:#1a2333; --muted:#667085; --ok:#1a7f4b; --okbg:#e7f6ee;
+ --warn:#b26a00; --warnbg:#fdf3e2; --over:#c0392b; --overbg:#fdecea; --track:#eef1f5;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+ font-size:14px;line-height:1.45;padding:18px;}
+h1{font-size:20px;margin:0 0 2px}
+h2{font-size:15px;margin:26px 0 10px;color:var(--navy);letter-spacing:.2px}
+.sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+.wrap{max-width:1060px;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.who{font-size:12px;color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;color:var(--txt)}
+input:focus,select:focus{outline:2px solid var(--navy2);outline-offset:-1px}
+button{cursor:pointer;border:none;border-radius:8px;font-size:13.5px;font-weight:600;padding:9px 14px}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:var(--navy2)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--txt)}
+.btn-ghost:hover{border-color:var(--navy2)}
+.btn-x{background:transparent;color:var(--muted);padding:2px 8px;font-size:15px}
+.btn-x:hover{color:var(--over)}
+.cardcell{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;position:relative}
+.cardcell.hdr-hdfc{border-top:3px solid var(--navy)}
+.cardcell.hdr-amex{border-top:3px solid var(--gold)}
+.cname{font-weight:700;font-size:14.5px;margin:0}
+.ctag{font-size:11px;color:var(--muted);margin:1px 0 10px}
+.badge{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
+.b-ok{background:var(--okbg);color:var(--ok)} .b-warn{background:var(--warnbg);color:var(--warn)} .b-over{background:var(--overbg);color:var(--over)}
+.bar{height:9px;border-radius:6px;background:var(--track);overflow:hidden;margin:8px 0 4px}
+.bar>span{display:block;height:100%;border-radius:6px;background:var(--ok);transition:width .3s}
+.bar>span.w{background:var(--warn)} .bar>span.o{background:var(--over)}
+.metric{display:flex;justify-content:space-between;font-size:12.5px;margin:2px 0}
+.metric b{font-variant-numeric:tabular-nums}
+.big{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
+.est{color:var(--warn);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.result{margin-top:12px;padding:12px 14px;border-radius:10px;font-size:13.5px;display:none}
+.result.show{display:block}
+.result.ok{background:var(--okbg);border:1px solid #bfe6cf}
+.result.warn{background:var(--warnbg);border:1px solid #f0dcae}
+.result.over{background:var(--overbg);border:1px solid #f3c6c0}
+.result h4{margin:0 0 6px;font-size:14px}
+.rec{font-size:12.5px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+details{margin-top:26px} summary{cursor:pointer;font-weight:700;color:var(--navy);font-size:14px}
+.cfgrow{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:8px;align-items:end;margin-bottom:8px}
+.cfgrow .lbl{font-size:12px;font-weight:600}
+.foot{font-size:11px;color:var(--muted);margin-top:22px;line-height:1.5}
+.flex-end{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.flex-end>div{flex:1;min-width:120px}
+@media(max-width:620px){.cfgrow{grid-template-columns:1fr 1fr}}
+/* auth gate */
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+#gate .box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:30px;max-width:380px;text-align:center;box-shadow:0 8px 30px rgba(15,42,74,.08)}
+#gate h1{font-size:22px;margin:0 0 6px;color:var(--navy)}
+#gate p{color:var(--muted);font-size:13px;margin:0 0 20px}
+.gbtn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);color:var(--txt);padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px}
+.gbtn:hover{border-color:var(--navy2)}
+#app{display:none}
+#cfgWarn{background:var(--warnbg);border:1px solid #f0dcae;color:var(--warn);border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;display:none}
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH GATE ================= -->
+<div id="gate">
+ <div class="box">
+  <h1>Voucher Tracker</h1>
+  <p>Sign in to sync your voucher caps and Amex milestones across all your devices.</p>
+  <button class="gbtn" id="signinBtn">
+   <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 2.9-2.2 5.4-4.7 7l7.3 5.7c4.3-3.9 6.8-9.7 6.8-17.2z"/><path fill="#FBBC05" d="M10.3 28.4a14.5 14.5 0 0 1 0-8.8l-7.8-6.1a24 24 0 0 0 0 21l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.4 0-11.8-3.7-13.7-9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
+   Sign in with Google
+  </button>
+  <p id="gateErr" style="color:var(--over);margin-top:16px;display:none"></p>
+  <p style="margin-top:22px;font-size:11px">First time? Make sure this site's domain is added under Firebase &rarr; Authentication &rarr; Settings &rarr; Authorized domains.</p>
+ </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app"><div class="wrap">
+ <div class="topbar">
+  <h1>Voucher &amp; Reward Cap Tracker</h1>
+  <div style="display:flex;align-items:center;gap:10px">
+   <span class="who" id="whoami"></span>
+   <button class="btn-ghost" id="signoutBtn" style="padding:6px 12px">Sign out</button>
+  </div>
+ </div>
+ <p class="sub">Log each purchase once. It tracks your monthly HDFC SmartBuy voucher caps (3,000 RP each since 1 Jul 2026) and your Amex milestones, and warns before a purchase overshoots a cap. Synced to your account.</p>
+
+ <div id="cfgWarn">⚠ Firebase isn't configured yet. Paste your project's config into <b>index.html</b> (the <code>firebaseConfig</code> object) and redeploy.</div>
+
+ <!-- MONTH + ADD -->
+ <div class="panel">
+  <div class="flex-end" style="margin-bottom:12px">
+   <div style="max-width:180px">
+    <label>Tracking month</label>
+    <input type="month" id="monthPick">
+   </div>
+   <div style="flex:0 0 auto;align-self:center;color:var(--muted);font-size:12px" id="monthNote"></div>
+  </div>
+  <div class="flex-end">
+   <div><label>Date</label><input type="date" id="pDate"></div>
+   <div style="flex:1.4"><label>Card</label><select id="pCard"></select></div>
+   <div><label>Amount (₹)</label><input type="number" id="pAmt" min="0" step="1" placeholder="e.g. 5000"></div>
+   <div style="flex:1.2"><label>Category</label><select id="pCat"></select></div>
+   <div style="flex:0 0 auto"><button class="btn-primary" id="addBtn">+ Add purchase</button></div>
+  </div>
+  <div class="hint">Tip: log voucher buys with category <b>Voucher (SmartBuy)</b> — only those count toward a card's voucher cap.</div>
+ </div>
+
+ <!-- TEST A PURCHASE -->
+ <h2>Will this purchase blow a cap?</h2>
+ <div class="panel">
+  <div class="flex-end">
+   <div><label>Planned amount (₹)</label><input type="number" id="tAmt" min="0" step="1" placeholder="e.g. 15000"></div>
+   <div style="flex:1.4"><label>Card (blank = best split)</label><select id="tCard"></select></div>
+   <div style="flex:0 0 auto"><button class="btn-ghost" id="testBtn">Check</button></div>
+  </div>
+  <div class="result" id="testResult"></div>
+ </div>
+
+ <h2>Voucher caps — HDFC SmartBuy &amp; Amex Reward Multiplier (per month)</h2>
+ <div class="grid" id="hdfcGrid"></div>
+
+ <h2>American Express — milestone cards</h2>
+ <div class="grid" id="amexGrid"></div>
+
+ <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:26px 0 10px">
+  <h2 style="margin:0">Purchase log — <span id="logMonthLbl"></span></h2>
+  <div style="display:flex;align-items:center;gap:8px">
+   <label style="margin:0">Month</label>
+   <input type="month" id="logMonth" style="width:auto">
+  </div>
+ </div>
+ <div class="panel" style="padding:6px 0">
+  <table>
+   <thead><tr><th>Date</th><th>Card</th><th>Category</th><th class="num">Amount</th><th></th></tr></thead>
+   <tbody id="logBody"></tbody>
+  </table>
+  <div id="logEmpty" class="hint" style="padding:14px 16px">No purchases logged for this month yet.</div>
+ </div>
+
+ <details>
+  <summary>Settings &amp; card rates (edit if HDFC changes the rules)</summary>
+  <div class="panel" style="margin-top:12px">
+   <p class="sub" style="margin-bottom:12px">Voucher rate = points per ₹150 slab (HDFC) that count toward the cap. Pt value = ₹ you get per point on best redemption. Saved to your account.</p>
+   <div id="cfgArea"></div>
+   <div class="flex-end" style="margin-top:14px">
+    <div style="flex:0 0 auto"><button class="btn-primary" id="saveCfg">Save rates</button></div>
+    <div style="flex:0 0 auto"><button class="btn-ghost" id="resetCfg">Reset to defaults</button></div>
+    <div style="flex:0 0 auto"><button class="btn-ghost" id="clearMonth">Clear this month's log</button></div>
+   </div>
+  </div>
+ </details>
+
+ <div class="foot" id="footNotes"></div>
+</div></div>
+
+<script type="module">
+// ============================================================
+//  FIREBASE CONFIG — paste your project's web config here.
+//  Firebase console → Project settings → General → Your apps → SDK setup (Config)
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD-jEMtf3x9lexu5d4YlnNOaCzntbyWnmI",
+  authDomain: "voucher-tracker-65e04.firebaseapp.com",
+  projectId: "voucher-tracker-65e04",
+  storageBucket: "voucher-tracker-65e04.firebasestorage.app",
+  messagingSenderId: "251856901860",
+  appId: "1:251856901860:web:9d1a86a75cd7b440783ef1"
+};
+// ============================================================
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+         onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, where, onSnapshot, addDoc, deleteDoc, doc,
+         getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE");
+let auth=null, db=null, user=null, unsub=null;
+if(CONFIGURED){
+  const app=initializeApp(firebaseConfig);
+  auth=getAuth(app); db=getFirestore(app);
+}
+
+const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+const inr1=n=>"₹"+(Math.round(n*10)/10).toLocaleString("en-IN");
+const $=id=>document.getElementById(id);
+
+const DEFAULT_CARDS=[
+ {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,estimate:false},
+ {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,estimate:false},
+ {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22},
+ {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap."},
+ {id:"amex_me",name:"Amex Rewards (Me)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5},
+ {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5},
+ {id:"amex_plat",name:"Amex Platinum Travel",bank:"Amex",kind:"amex_annual",rpPer50:1,rpValue:0.5,memStart:"2026-04-01"}
+];
+const CATS=["Voucher (SmartBuy)","Groceries","Dining / Food delivery","Online shopping","Travel","Rent","Income Tax","GST","Fuel","Utilities","Insurance","Other"];
+const IT_GST=["Income Tax","GST"];
+const AMEX_EXCLUDED=["Fuel","Utilities","Insurance"];
+const isExcludedCat=c=>AMEX_EXCLUDED.some(e=>(c||"").startsWith(e));
+const AMEX_MONTHLY_MILESTONES=[
+ {label:"4 transactions ≥ ₹1,500",kind:"txncount",need:4,minTxn:1500,bonus:1000},
+ {label:"₹20,000 total spend",kind:"spend",need:20000,bonus:1000}
+];
+const AMEX_ANNUAL_MILESTONES=[
+ {need:190000,bonus:7500,extra:""},
+ {need:400000,bonus:10000,extra:""},
+ {need:700000,bonus:22500,extra:"+ Taj Stay voucher"}
+];
+
+let CARDS=JSON.parse(JSON.stringify(DEFAULT_CARDS));
+let PURCH=[];
+let MONTH=localStorage.getItem("vt_month")||new Date().toISOString().slice(0,7);
+const cardById=id=>CARDS.find(c=>c.id===id);
+
+// ---- period helpers ----
+const inMonth=(p,m)=>(p.date||"").slice(0,7)===m;
+const monthPurch=cardId=>PURCH.filter(p=>p.card===cardId&&inMonth(p,MONTH));
+function annualSpend(card){
+ const start=card.memStart||"2026-04-01";
+ const s=new Date(start); const e=new Date(s); e.setFullYear(e.getFullYear()+1);
+ return PURCH.filter(p=>p.card===card.id).filter(p=>{const d=new Date(p.date);return d>=s&&d<e;}).reduce((sum,p)=>sum+p.amt,0);
+}
+const amexMonthAll=cardId=>monthPurch(cardId);
+
+// ---- BizPower statement-cycle non-IT spend (for the ₹25k IT-accelerator unlock) ----
+function bizCycleWindow(card){
+ const day=Math.min(28,Math.max(1,card.cycleDay||1));
+ const now=new Date();
+ let start=new Date(now.getFullYear(),now.getMonth(),day);
+ if(now<start) start=new Date(now.getFullYear(),now.getMonth()-1,day);
+ const end=new Date(start.getFullYear(),start.getMonth()+1,day);
+ return {start,end};
+}
+function nonITSpend(card){
+ const {start,end}=bizCycleWindow(card);
+ return PURCH.filter(p=>p.card===card.id)
+   .filter(p=>{const d=new Date(p.date);return d>=start&&d<end;})
+   .filter(p=>!IT_GST.includes(p.cat))
+   .reduce((s,p)=>s+p.amt,0);
+}
+const fmtD=d=>d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+
+// ---- voucher cap math (points per whole slab, floored) ----
+const slabOf=card=>card.slab||(card.bank==="Amex"?40:150);
+function voucherStats(card){
+ const slab=slabOf(card);
+ const cps=card.rpPer150*slab/150;
+ const tps=(card.totalRpPer150||card.rpPer150)*slab/150;
+ const purch=monthPurch(card.id).filter(p=>(p.cat||"").startsWith("Voucher"));
+ const spent=purch.reduce((s,p)=>s+p.amt,0);
+ let cappedPts=0,totalPts=0,counted=0;
+ purch.forEach(p=>{const n=Math.floor(p.amt/slab);cappedPts+=n*cps;totalPts+=n*tps;counted+=n*slab;});
+ const wasted=Math.max(0,spent-counted);
+ const rpEarned=Math.min(cappedPts,card.voucherRpCap);
+ const slabsForCap=Math.ceil(card.voucherRpCap/cps);
+ const capSpend=slabsForCap*slab;
+ const pct=capSpend>0?spent/capSpend:0;
+ const headroom=Math.max(0,capSpend-spent);
+ const basePart=totalPts-cappedPts;
+ const valueEarned=(rpEarned+basePart)*card.rpValue;
+ const backPct=slab>0?(tps/slab*card.rpValue)*100:0;
+ return {slab,cps,tps,spent,capSpend,rpEarned,pct,headroom,valueEarned,backPct,wasted};
+}
+
+// ================= RENDER =================
+function fillSelectors(){
+ $("pCat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("");
+ const cardOpts=CARDS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+ $("pCard").innerHTML=cardOpts;
+ $("tCard").innerHTML=`<option value="">— best split across cards —</option>`+cardOpts;
+}
+function renderHDFC(){
+ $("hdfcGrid").innerHTML=CARDS.filter(c=>c.kind==="voucher").map(card=>{
+  const s=voucherStats(card);
+  let cls="b-ok",bar="",lbl="OK";
+  if(s.pct>=1){cls="b-over";bar="o";lbl="CAP HIT";}
+  else if(s.pct>=0.8){cls="b-warn";bar="w";lbl="NEAR CAP";}
+  const unit=card.capLabel||"RP";
+  const hdr=card.bank==="Amex"?"hdr-amex":"hdr-hdfc";
+  const prov=card.provider||"SmartBuy";
+  let extra="";
+  if(card.itThreshold){
+   const nit=nonITSpend(card), thr=card.itThreshold, unlocked=nit>=thr;
+   const {start,end}=bizCycleWindow(card);
+   extra=`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)">
+    <div class="metric"><span>Non-income-tax spend (cycle)</span><b>${inr(nit)} / ${inr(thr)}</b></div>
+    <div class="bar"><span class="${unlocked?'':'w'}" style="width:${Math.min(100,nit/thr*100).toFixed(0)}%"></span></div>
+    <div class="metric"><span>Income-tax accelerator</span><b style="color:${unlocked?'var(--ok)':'var(--warn)'}">${unlocked?'✓ UNLOCKED':'LOCKED — '+inr(thr-nit)+' to go'}</b></div>
+    <div class="hint">Cycle ${fmtD(start)} – ${fmtD(end)}. Spend ${inr(thr)} on non-IT / non-GST purchases (vouchers count) to unlock accelerated rewards on income-tax payments. Log your other BizPower spend too for an accurate count.</div>
+   </div>`;
+  }
+  return `<div class="cardcell ${hdr}">
+   <span class="badge ${cls}">${lbl}</span>
+   <p class="cname">${card.name}${card.estimate?' <span class="est" title="Rate estimated — verify on statement">*</span>':''}</p>
+   <p class="ctag">${prov} · cap ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}/mo · 1 pt ≈ ${inr1(card.rpValue)}</p>
+   <div class="big">${inr(s.spent)} <span style="font-size:13px;color:var(--muted);font-weight:500">/ ${inr(s.capSpend)}</span></div>
+   <div class="bar"><span class="${bar}" style="width:${Math.min(100,s.pct*100).toFixed(0)}%"></span></div>
+   <div class="metric"><span>Capped pts earned</span><b>${Math.round(s.rpEarned).toLocaleString("en-IN")} / ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}</b></div>
+   <div class="metric"><span>Value earned</span><b>${inr(s.valueEarned)}</b></div>
+   <div class="metric"><span>Headroom left</span><b>${s.headroom>0?inr(s.headroom):"— none —"}</b></div>
+   ${s.wasted>0?`<div class="metric"><span class="est">Wasted (below ₹${s.slab} slab)</span><b class="est">${inr(s.wasted)} → 0 pts</b></div>`:""}
+   <div class="hint">Points credited only per whole ₹${s.slab} slab. Buy in multiples of ₹${s.slab} — up to <b>${inr(s.capSpend)}</b>/month for max bonus (~${s.backPct.toFixed(1)}% back). ${card.note?card.note:"Beyond that you earn base points only."}</div>
+   ${extra}
+  </div>`;
+ }).join("");
+}
+function renderAmex(){
+ let html="";
+ CARDS.filter(c=>c.kind==="amex_monthly").forEach(card=>{
+  const ps=amexMonthAll(card.id);
+  const eligible=ps.filter(p=>!isExcludedCat(p.cat)).reduce((s,p)=>s+p.amt,0);
+  const bigTxns=ps.filter(p=>!isExcludedCat(p.cat)&&p.amt>=1500).length;
+  const baseMR=Math.floor(eligible/50)*card.rpPer50;
+  const m1=AMEX_MONTHLY_MILESTONES[0], m2=AMEX_MONTHLY_MILESTONES[1];
+  const m1done=bigTxns>=m1.need, m2done=eligible>=m2.need;
+  html+=`<div class="cardcell hdr-amex">
+   <span class="badge ${(m1done&&m2done)?'b-ok':'b-warn'}">${(m1done&&m2done)?'MILESTONES MET':'IN PROGRESS'}</span>
+   <p class="cname">${card.name}</p>
+   <p class="ctag">1 MR / ₹50 eligible spend · monthly bonuses</p>
+   <div class="metric"><span>Eligible spend this month</span><b>${inr(eligible)}</b></div>
+   <div class="metric"><span>Base MR points</span><b>${baseMR.toLocaleString("en-IN")}</b></div>
+   <div class="bar"><span class="${m2done?'':'w'}" style="width:${Math.min(100,eligible/m2.need*100).toFixed(0)}%"></span></div>
+   <div class="metric"><span>${m2.label} → +${m2.bonus} MR</span><b>${m2done?'✓ done':inr(Math.max(0,m2.need-eligible))+' to go'}</b></div>
+   <div class="metric"><span>${m1.label} → +${m1.bonus} MR</span><b>${bigTxns}/${m1.need} ${m1done?'✓':''}</b></div>
+   <div class="hint">Excluded (no MR, don't count): fuel, utilities, insurance, wallet/cash. Milestone MR can't be redeemed as statement credit.</div>
+  </div>`;
+ });
+ CARDS.filter(c=>c.kind==="amex_annual").forEach(card=>{
+  const yr=annualSpend(card);
+  const next=AMEX_ANNUAL_MILESTONES.find(m=>yr<m.need);
+  const top=AMEX_ANNUAL_MILESTONES[AMEX_ANNUAL_MILESTONES.length-1];
+  const denom=next?next.need:top.need;
+  html+=`<div class="cardcell hdr-amex">
+   <span class="badge ${next?'b-warn':'b-ok'}">${next?'ANNUAL':'ALL MET'}</span>
+   <p class="cname">${card.name}</p>
+   <p class="ctag">Membership year from ${card.memStart} · annual milestones</p>
+   <div class="big">${inr(yr)}</div>
+   <div class="bar"><span class="${next?'w':''}" style="width:${Math.min(100,yr/denom*100).toFixed(0)}%"></span></div>
+   ${AMEX_ANNUAL_MILESTONES.map(m=>`<div class="metric"><span>${inr(m.need)} → +${m.bonus.toLocaleString("en-IN")} MR ${m.extra}</span><b>${yr>=m.need?'✓':inr(m.need-yr)+' to go'}</b></div>`).join("")}
+   <div class="hint">Platinum Travel counts insurance/rent/tax toward these milestones even though they earn no base MR. Excluded from earning: fuel, insurance, utilities, cash, POS-EMI.</div>
+  </div>`;
+ });
+ $("amexGrid").innerHTML=html;
+}
+function renderLog(){
+ const rows=PURCH.filter(p=>inMonth(p,MONTH)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+ const body=$("logBody");
+ $("logMonthLbl").textContent=monthLabel(MONTH);
+ $("logEmpty").style.display=rows.length?"none":"block";
+ const voucherTotal=rows.filter(p=>(p.cat||"").startsWith("Voucher")).reduce((s,p)=>s+p.amt,0);
+ const allTotal=rows.reduce((s,p)=>s+p.amt,0);
+ let html=rows.map(p=>{
+  const c=cardById(p.card);
+  const vch=(p.cat||"").startsWith("Voucher");
+  return `<tr><td>${p.date}</td><td>${c?c.name:p.card}</td><td>${p.cat}${vch?'':''}</td><td class="num">${inr(p.amt)}</td>
+   <td class="num"><button class="btn-x" data-del="${p.id}">✕</button></td></tr>`;
+ }).join("");
+ if(rows.length){
+  html+=`<tr style="border-top:2px solid var(--navy);font-weight:700;background:#fafbfc">
+   <td colspan="3">Voucher purchases — ${monthLabel(MONTH)}</td><td class="num">${inr(voucherTotal)}</td><td></td></tr>
+   <tr style="font-weight:600;color:var(--muted)">
+   <td colspan="3">All purchases (incl. non-voucher)</td><td class="num">${inr(allTotal)}</td><td></td></tr>`;
+ }
+ body.innerHTML=html;
+ body.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delPurchase(b.dataset.del));
+}
+function renderConfig(){
+ const area=$("cfgArea");
+ area.innerHTML=`<div class="cfgrow"><div class="lbl">Voucher card</div><div class="lbl">Pts / ₹150 (capped)</div><div class="lbl">Pt value ₹</div><div class="lbl">Bonus/RP cap</div><div class="lbl">₹ cap (auto)</div></div>`+
+ CARDS.filter(c=>c.kind==="voucher").map(c=>{
+  const capSpend=Math.ceil(c.voucherRpCap/(c.rpPer150*slabOf(c)/150))*slabOf(c);
+  return `<div class="cfgrow" data-id="${c.id}">
+   <div style="font-size:13px;font-weight:600">${c.name}</div>
+   <input type="number" data-f="rpPer150" value="${c.rpPer150}">
+   <input type="number" step="0.1" data-f="rpValue" value="${c.rpValue}">
+   <input type="number" data-f="voucherRpCap" value="${c.voucherRpCap}">
+   <div style="font-size:13px;color:var(--muted);padding:8px 0">${inr(capSpend)}</div>
+  </div>`;
+ }).join("")+
+ `<div class="cfgrow" style="margin-top:6px"><div class="lbl">Amex Platinum membership-year start</div><input type="date" data-plat="1" value="${cardById('amex_plat').memStart}"><div></div><div></div><div></div></div>`+
+ `<div class="cfgrow"><div class="lbl">BizPower cycle start day (1–28)</div><input type="number" min="1" max="28" data-bizday="1" value="${cardById('bizpower').cycleDay||1}"><div class="lbl" style="grid-column:span 1">Non-IT unlock ₹</div><input type="number" data-bizthr="1" value="${cardById('bizpower').itThreshold||25000}"><div></div></div>`;
+}
+const monthLabel=m=>{const[y,mo]=m.split("-");return new Date(y,mo-1,1).toLocaleString("en-IN",{month:"long",year:"numeric"});};
+function renderAll(){ if(!user)return; renderHDFC();renderAmex();renderLog();
+ $("monthNote").textContent="Voucher caps reset on the 1st of each month.";}
+
+// ================= FIRESTORE ACTIONS =================
+async function addPurchase(date,card,cat,amt){
+ await addDoc(collection(db,"purchases"),{uid:user.uid,date,card,cat,amt,createdAt:serverTimestamp()});
+}
+async function delPurchase(id){ await deleteDoc(doc(db,"purchases",id)); }
+async function clearMonth(){
+ const ids=PURCH.filter(p=>inMonth(p,MONTH)).map(p=>p.id);
+ await Promise.all(ids.map(id=>deleteDoc(doc(db,"purchases",id))));
+}
+async function loadSettings(){
+ try{
+  const snap=await getDoc(doc(db,"settings",user.uid));
+  if(snap.exists()&&Array.isArray(snap.data().cards)){
+   const saved=snap.data().cards;
+   DEFAULT_CARDS.forEach(d=>{
+    const ex=saved.find(c=>c.id===d.id);
+    if(!ex) saved.push(JSON.parse(JSON.stringify(d)));
+    else for(const k in d) if(ex[k]===undefined) ex[k]=d[k];   // backfill new fields (priority, itThreshold, cycleDay, slab…)
+   });
+   CARDS=saved;
+  } else { CARDS=JSON.parse(JSON.stringify(DEFAULT_CARDS)); }
+ }catch(e){ CARDS=JSON.parse(JSON.stringify(DEFAULT_CARDS)); }
+}
+async function saveSettings(){ await setDoc(doc(db,"settings",user.uid),{cards:CARDS}); }
+
+function subscribe(){
+ if(unsub)unsub();
+ unsub=onSnapshot(query(collection(db,"purchases"),where("uid","==",user.uid)),snap=>{
+  PURCH=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderAll();
+ },err=>{ console.error("snapshot",err); });
+}
+
+// ================= EVENTS =================
+$("addBtn").onclick=async()=>{
+ const amt=+$("pAmt").value, date=$("pDate").value;
+ if(!amt||amt<=0){alert("Enter an amount.");return;}
+ if(!date){alert("Pick a date.");return;}
+ $("addBtn").disabled=true;
+ try{ await addPurchase(date,$("pCard").value,$("pCat").value,amt); $("pAmt").value=""; }
+ catch(e){ alert("Couldn't save: "+e.message); }
+ $("addBtn").disabled=false;
+};
+function setMonth(m){ MONTH=m; localStorage.setItem("vt_month",MONTH); $("monthPick").value=m; $("logMonth").value=m; renderAll(); }
+$("monthPick").onchange=e=>setMonth(e.target.value);
+$("logMonth").onchange=e=>setMonth(e.target.value);
+$("saveCfg").onclick=async()=>{
+ document.querySelectorAll("#cfgArea .cfgrow[data-id]").forEach(row=>{
+  const c=cardById(row.dataset.id);
+  row.querySelectorAll("[data-f]").forEach(inp=>{c[inp.dataset.f]=+inp.value;});
+ });
+ const plat=document.querySelector("#cfgArea [data-plat]");
+ if(plat)cardById("amex_plat").memStart=plat.value;
+ const bd=document.querySelector("#cfgArea [data-bizday]");
+ if(bd)cardById("bizpower").cycleDay=Math.min(28,Math.max(1,+bd.value||1));
+ const bt=document.querySelector("#cfgArea [data-bizthr]");
+ if(bt)cardById("bizpower").itThreshold=+bt.value||25000;
+ try{ await saveSettings(); renderConfig();renderAll(); alert("Rates saved."); }
+ catch(e){ alert("Couldn't save settings: "+e.message); }
+};
+$("resetCfg").onclick=async()=>{
+ if(!confirm("Reset all card rates to defaults?"))return;
+ CARDS=JSON.parse(JSON.stringify(DEFAULT_CARDS));
+ try{ await saveSettings(); }catch(e){}
+ renderConfig();fillSelectors();renderAll();
+};
+$("clearMonth").onclick=async()=>{
+ if(!confirm("Delete all logged purchases for "+monthLabel(MONTH)+"?"))return;
+ try{ await clearMonth(); }catch(e){ alert("Couldn't clear: "+e.message); }
+};
+
+$("testBtn").onclick=()=>{
+ const amt=+$("tAmt").value;
+ const box=$("testResult");
+ if(!amt||amt<=0){box.className="result show warn";box.innerHTML="Enter a planned amount first.";return;}
+ const chosen=$("tCard").value;
+ function buildCandidates(){
+  const list=[];
+  CARDS.filter(c=>c.kind==="voucher").forEach(c=>{
+   const s=voucherStats(c);
+   list.push({card:c,type:"flat",filled:s.spent,cap:s.capSpend,rate:s.backPct/100,alloc:0});
+  });
+  CARDS.filter(c=>c.kind==="amex_monthly").forEach(c=>{
+   const ps=amexMonthAll(c.id);
+   const eligible=ps.filter(p=>!isExcludedCat(p.cat)).reduce((a,p)=>a+p.amt,0);
+   list.push({card:c,type:"mrcc",filled:eligible,alloc:0,
+     baseRate:(2*c.rpPer50/50)*c.rpValue,
+     milestones:[{at:6000,bonus:1000*c.rpValue},{at:20000,bonus:1000*c.rpValue}]});
+  });
+  return list;
+ }
+ function marginalPlan(amount){
+  const cands=buildCandidates();
+  let remaining=amount, totalVal=0, guard=0; const order=[];
+  while(remaining>0.5 && guard++<300){
+   let best=null;
+   cands.forEach(x=>{
+    let slice,rate;
+    if(x.type==="flat"){ slice=Math.max(0,x.cap-(x.filled+x.alloc)); if(slice<=0)return; rate=x.rate; }
+    else{ const cur=x.filled+x.alloc; const nextM=x.milestones.find(m=>cur<m.at);
+     if(nextM){ const toM=nextM.at-cur; if(remaining>=toM){slice=toM;rate=x.baseRate+nextM.bonus/toM;} else {slice=remaining;rate=x.baseRate;} }
+     else {slice=remaining;rate=x.baseRate;} }
+    const use=Math.min(slice,remaining); if(use<=0)return;
+    const pri=x.card.priority||0;   // tie-break: BizPower before Diners (its vouchers also clear the ₹25k non-IT unlock)
+    if(!best || rate>best.rate+1e-9 || (Math.abs(rate-best.rate)<=1e-9 && pri>best.pri)){best={x,use,rate,pri};}
+   });
+   if(!best)break;
+   best.x.alloc+=best.use; remaining-=best.use; totalVal+=best.use*best.rate;
+   if(!order.includes(best.x))order.push(best.x);
+  }
+  return {cands:order,leftover:remaining,totalVal};
+ }
+ if(chosen){
+  const c=cardById(chosen);
+  if(c.kind==="amex_monthly"){
+   const ps=amexMonthAll(c.id);
+   const cur=ps.filter(p=>!isExcludedCat(p.cat)).reduce((a,p)=>a+p.amt,0);
+   const after=cur+amt, ms=[{at:6000,b:1000,t:"4 × ₹1,500 milestone"},{at:20000,b:1000,t:"₹20,000 milestone"}];
+   let bonus=0,notes=[];
+   ms.forEach(m=>{if(cur<m.at&&after>=m.at){bonus+=m.b;notes.push("✓ unlocks "+m.t+" (+1,000 MR)");}
+     else if(after<m.at){notes.push("✗ still ₹"+Math.round(m.at-after).toLocaleString("en-IN")+" short of "+m.t);}});
+   const baseMR=Math.floor(amt/50)*(2*c.rpPer50), totalMR=baseMR+bonus;
+   box.className="result show "+(bonus>0?"ok":"warn");
+   box.innerHTML=`<h4>${c.name} (via Reward Multiplier)</h4>
+    <b>${inr(amt)}</b> → ~<b>${Math.round(totalMR).toLocaleString("en-IN")} MR</b> (${Math.round(baseMR).toLocaleString("en-IN")} base${bonus?" + "+bonus.toLocaleString("en-IN")+" milestone":""}) ≈ <b>${inr(totalMR*c.rpValue)}</b>.<br>
+    ${notes.join("<br>")}
+    <div class="rec">Buy via the Amex Reward Multiplier portal (4 separate ₹1,500+ voucher buys hit the first milestone). Milestone MR excludes fuel/utilities/insurance and can't be redeemed as statement credit.</div>`;
+   return;
+  }
+  if(c.kind==="amex_annual"){
+   box.className="result show warn";
+   box.innerHTML=`<h4>${c.name} has no voucher cap</h4>It runs on annual milestones, not per-voucher bonuses. It earns only 3X (3 MR/₹50) on the portal, so it's rarely your best voucher card.`;
+   return;
+  }
+  const s=voucherStats(c);
+  const slabs=Math.floor(amt/s.slab);
+  const wastedThis=amt-slabs*s.slab;
+  const grossPts=slabs*s.cps;
+  const capRoomPts=Math.max(0,c.voucherRpCap-s.rpEarned);
+  const earnPts=Math.min(grossPts,capRoomPts);
+  const basePart=slabs*(s.tps-s.cps);
+  const val=(earnPts+basePart)*c.rpValue;
+  const unit=c.capLabel||"RP";
+  const wnote=wastedThis>0?`<br><span class="est">₹${wastedThis} is below a full ₹${s.slab} slab — earns 0. Round to a multiple of ₹${s.slab}.</span>`:"";
+  if(grossPts<=capRoomPts+1e-9 && amt<=s.headroom){
+   box.className="result show ok";
+   box.innerHTML=`<h4>✓ Fits on ${c.name}</h4>
+    <b>${inr(amt)}</b> = ${slabs} × ₹${s.slab} → <b>${Math.round(earnPts).toLocaleString("en-IN")} ${unit}</b> ≈ <b>${inr(val)}</b>.<br>
+    Headroom left after this: <b>${inr(s.headroom-amt)}</b>.${wnote}`;
+  }else{
+   box.className="result show over";
+   box.innerHTML=`<h4>⚠ Exceeds the cap on ${c.name}</h4>
+    Only <b>${Math.round(earnPts).toLocaleString("en-IN")} ${unit}</b> (≈${inr(s.headroom)} of spend) still earns the bonus; the rest earns base only.<br>
+    Leave the card blank and hit Check for the best split.${wnote}`;
+  }
+ }else{
+  const {cands,leftover,totalVal}=marginalPlan(amt);
+  box.className="result show "+(leftover>0.5?"warn":"ok");
+  let h=`<h4>Best split for ${inr(amt)}</h4>`;
+  h+=`<div class="rec"><b>Put:</b><br>`+
+   cands.filter(x=>x.alloc>0.5).map(x=>{
+    const tag=x.type==="mrcc"?" <span style='color:var(--muted)'>(Reward Multiplier — hits milestone)</span>":"";
+    return `<b>${inr(x.alloc)}</b> → ${x.card.name}${tag}`;
+   }).join("<br>")+`</div>`;
+  h+=`Estimated value back: <b>${inr(totalVal)}</b> (~${(totalVal/amt*100).toFixed(1)}% blended).`;
+  if(leftover>0.5) h+=`<br><b>${inr(leftover)}</b> couldn't earn a bonus this month (all caps full) — put it anywhere; earns base only.`;
+  const biz=cardById("bizpower");
+  if(biz&&biz.itThreshold&&cands.find(x=>x.card.id==="bizpower"&&x.alloc>0.5)&&nonITSpend(biz)<biz.itThreshold){
+   h+=`<div class="rec">BizPower is filled before Diners on purpose — its vouchers also count toward the ${inr(biz.itThreshold)} non-IT spend that unlocks your income-tax accelerator (${inr(biz.itThreshold-nonITSpend(biz))} to go this cycle).</div>`;
+  }
+  h+=`<div class="rec" style="color:var(--muted)">Buy each voucher in multiples of the card's slab (HDFC ₹150, Amex Platinum ₹40) — any remainder below a full slab earns nothing.</div>`;
+  box.innerHTML=h;
+ }
+};
+
+$("footNotes").innerHTML=
+ "<b>Sources & assumptions:</b> HDFC applied a 3,000 RP/month cap on SmartBuy brand-voucher (GyFTR/Woohoo) accelerated points effective 1 Jul 2026, within each card's overall SmartBuy cap. ₹ thresholds: Infinia ~₹22,500, Diners Club Black ~₹45,000 to reach 3,000 RP. BizPower rate marked * is an estimate — confirm on your first statement and edit in Settings. Amex: MRCC monthly bonuses (4×₹1,500 txns → 1,000 MR; ₹20,000 → 1,000 MR); Platinum Travel annual milestones from 9 Mar 2026 (₹1.9L/₹4L/₹7L). Amex Platinum (Charge): 5X (5 MR/₹40) on Reward Multiplier; bonus MR capped 25,000/month across all Amex cards. Not financial advice — verify current T&Cs.";
+
+// ================= AUTH WIRING =================
+function showApp(){ $("gate").style.display="none"; $("app").style.display="block"; }
+function showLogin(msg){ $("gate").style.display="flex"; $("app").style.display="none";
+ if(msg){ $("gateErr").style.display="block"; $("gateErr").textContent=msg; } }
+
+$("monthPick").value=MONTH;
+$("logMonth").value=MONTH;
+$("pDate").value=new Date().toISOString().slice(0,10);
+
+if(!CONFIGURED){
+ // Let user preview the UI even before wiring Firebase.
+ user={uid:"preview"}; showApp(); $("cfgWarn").style.display="block";
+ fillSelectors();renderConfig();renderAll();
+}else{
+ $("signinBtn").onclick=async()=>{
+  const provider=new GoogleAuthProvider();
+  try{ await signInWithPopup(auth,provider); }
+  catch(e){ try{ await signInWithRedirect(auth,provider); }catch(e2){ showLogin(e2.message); } }
+ };
+ $("signoutBtn").onclick=()=>signOut(auth);
+ getRedirectResult(auth).catch(()=>{});
+ onAuthStateChanged(auth, async u=>{
+  if(u){ user=u; $("whoami").textContent=u.email||u.displayName||"Signed in"; showApp();
+   await loadSettings(); fillSelectors(); renderConfig(); subscribe(); renderAll();
+  } else { user=null; if(unsub){unsub();unsub=null;} PURCH=[]; showLogin(); }
+ });
+}
+</script>
+</body>
+</html>
