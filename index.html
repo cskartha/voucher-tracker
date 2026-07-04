@@ -4,77 +4,146 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0f2a4a">
+<meta name="theme-color" content="#22C7F2">
 <title>Voucher &amp; Reward Cap Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light;
- --navy:#0f2a4a; --navy2:#1c3d63; --gold:#b8892b; --bg:#f6f7f9; --card:#ffffff;
- --line:#e4e7ec; --txt:#1a2333; --muted:#667085; --ok:#1a7f4b; --okbg:#e7f6ee;
- --warn:#b26a00; --warnbg:#fdf3e2; --over:#c0392b; --overbg:#fdecea; --track:#eef1f5;}
+ --cyan:#22C7F2; --ink:#123A4A; --ink2:#0E3646; --muted:#5B7A86;
+ --pink:#FF1E8E; --pink2:#ED1580;
+ --card:#FFFFFF; --track:#E7EEF2; --line:#DCE6EC; --dash:#DEE6EC;
+ --ok:#10B981; --okbg:#E3F7EF; --warn:#F59E0B; --warnbg:#FDF1DA; --over:#FF2D6B; --overbg:#FFE3EC;
+ --navy:#123A4A; --navy2:#0E3646; --gold:#F59E0B; --bg:#22C7F2; --txt:#123A4A;}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);
- font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
- font-size:14px;line-height:1.45;padding:18px;}
-h1{font-size:20px;margin:0 0 2px}
-h2{font-size:15px;margin:26px 0 10px;color:var(--navy);letter-spacing:.2px}
-.sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
-.wrap{max-width:1060px;margin:0 auto}
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-.who{font-size:12px;color:var(--muted)}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 3px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;color:var(--txt)}
-input:focus,select:focus{outline:2px solid var(--navy2);outline-offset:-1px}
-button{cursor:pointer;border:none;border-radius:8px;font-size:13.5px;font-weight:600;padding:9px 14px}
-.btn-primary{background:var(--navy);color:#fff}
-.btn-primary:hover{background:var(--navy2)}
-.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--txt)}
-.btn-ghost:hover{border-color:var(--navy2)}
-.btn-x{background:transparent;color:var(--muted);padding:2px 8px;font-size:15px}
-.btn-x:hover{color:var(--over)}
-.cardcell{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;position:relative}
-.cardcell.hdr-hdfc{border-top:3px solid var(--navy)}
-.cardcell.hdr-amex{border-top:3px solid var(--gold)}
-.cname{font-weight:700;font-size:14.5px;margin:0}
-.ctag{font-size:11px;color:var(--muted);margin:1px 0 10px}
-.badge{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}
-.b-ok{background:var(--okbg);color:var(--ok)} .b-warn{background:var(--warnbg);color:var(--warn)} .b-over{background:var(--overbg);color:var(--over)}
-.bar{height:9px;border-radius:6px;background:var(--track);overflow:hidden;margin:8px 0 4px}
-.bar>span{display:block;height:100%;border-radius:6px;background:var(--ok);transition:width .3s}
-.bar>span.w{background:var(--warn)} .bar>span.o{background:var(--over)}
-.metric{display:flex;justify-content:space-between;font-size:12.5px;margin:2px 0}
-.metric b{font-variant-numeric:tabular-nums}
-.big{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
-.hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
-.est{color:var(--warn);font-weight:600}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-.result{margin-top:12px;padding:12px 14px;border-radius:10px;font-size:13.5px;display:none}
-.result.show{display:block}
-.result.ok{background:var(--okbg);border:1px solid #bfe6cf}
-.result.warn{background:var(--warnbg);border:1px solid #f0dcae}
-.result.over{background:var(--overbg);border:1px solid #f3c6c0}
-.result h4{margin:0 0 6px;font-size:14px}
-.rec{font-size:12.5px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
-details{margin-top:26px} summary{cursor:pointer;font-weight:700;color:var(--navy);font-size:14px}
-.cfgrow{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:8px;align-items:end;margin-bottom:8px}
-.cfgrow .lbl{font-size:12px;font-weight:600}
-.foot{font-size:11px;color:var(--muted);margin-top:22px;line-height:1.5}
-.flex-end{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+body{margin:0;min-height:100vh;background:var(--cyan);color:var(--ink);
+ font-family:'Poppins',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+ font-size:14px;line-height:1.45;padding:28px 24px;}
+.wrap{max-width:1120px;margin:0 auto}
+@keyframes pop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* header */
+.hdr{text-align:center;margin-bottom:26px}
+.hrow{display:flex;align-items:center;justify-content:center;gap:12px}
+.rbadge{width:46px;height:46px;border-radius:50%;background:var(--pink);color:#fff;font-weight:900;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(255,30,142,.35)}
+.hdr h1{font-weight:900;font-size:31px;letter-spacing:-.5px;color:var(--ink2);margin:0}
+.hrule{width:72px;height:4px;border-radius:999px;background:var(--pink);margin:12px auto 0}
+.hsub{color:rgba(14,54,70,.7);font-weight:500;font-size:13px;max-width:600px;margin:12px auto 0}
+.monthpill{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:999px;padding:8px 8px 8px 18px;margin:16px auto 0;box-shadow:0 8px 22px rgba(11,60,80,.12)}
+.monthpill label{margin:0;color:var(--muted);font-weight:800;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase}
+.monthpill input{width:auto;border:1.5px solid var(--line);border-radius:999px;padding:7px 12px}
+.hnote{color:rgba(14,54,70,.65);font-size:11.5px;font-weight:500;margin:8px 0 0}
+.userbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+.who{font-size:12px;color:rgba(14,54,70,.72);font-weight:600}
+
+/* section headers */
+.sechead{display:flex;align-items:center;gap:10px;margin:30px 0 12px;flex-wrap:wrap}
+.sechead h2{font-weight:800;font-size:20px;letter-spacing:-.3px;color:var(--ink2);margin:0}
+.sechead .cap{color:rgba(14,54,70,.6);font-weight:600;font-size:12px}
+.sdot{width:28px;height:28px;border-radius:50%;flex:0 0 auto}
+.sdot.pink{background:var(--pink)} .sdot.cyan{background:#2AA8E0} .sdot.gold{background:var(--gold)}
+.sdot.purple{background:#8E5BF0} .sdot.green{background:var(--ok)}
+.sechead .spacer{flex:1}
+.sechead .minput{width:auto;border:1.5px solid var(--line);border-radius:999px;padding:7px 12px;background:#fff}
+
+/* panels & forms */
+.panel{background:var(--card);border-radius:22px;padding:20px;box-shadow:0 10px 26px rgba(11,60,80,.12);animation:pop .2s cubic-bezier(.34,1.56,.64,1)}
+label{display:block;font-size:10.5px;color:var(--muted);margin:0 0 4px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+input,select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;font-weight:500;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 2px rgba(255,30,142,.15)}
+.flex-end{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
 .flex-end>div{flex:1;min-width:120px}
-@media(max-width:620px){.cfgrow{grid-template-columns:1fr 1fr}}
+
+/* buttons */
+button{cursor:pointer;border:none;border-radius:999px;font-family:inherit;font-size:14px;font-weight:800;padding:12px 24px}
+.btn-primary{background:var(--pink);color:#fff;box-shadow:0 6px 16px rgba(255,30,142,.35)}
+.btn-primary:hover{background:var(--pink2)}
+.btn-primary:active{transform:translateY(1px)}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink);font-weight:800}
+.btn-ghost:hover{border-color:var(--pink)}
+#testBtn{background:var(--ink);color:#fff}
+#testBtn:hover{background:var(--ink2)}
+#clearMonth{color:var(--over);border-color:#FFD0DE}
+#clearMonth:hover{background:var(--overbg)}
+.btn-x{background:transparent;color:#B9CAD2;padding:2px 8px;font-size:16px;font-weight:700}
+.btn-x:hover{color:var(--over)}
+
+/* ticket / cap cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.cardcell{position:relative;background:#fff;border-radius:20px;padding:16px;overflow:hidden;box-shadow:0 8px 22px rgba(11,60,80,.12);animation:pop .2s cubic-bezier(.34,1.56,.64,1)}
+.cardcell::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--accent,#2AA8E0)}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-top:6px}
+.cwho{display:flex;align-items:center;gap:10px;min-width:0}
+.avatar{width:38px;height:38px;border-radius:50%;flex:0 0 auto;background:var(--accent,#2AA8E0);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(11,60,80,.18)}
+.cname{font-weight:800;font-size:15px;margin:0;color:var(--ink);line-height:1.2}
+.ctag{font-size:11px;font-weight:500;color:var(--muted);margin:2px 0 0}
+.badge{flex:0 0 auto;font-size:9.5px;font-weight:800;padding:4px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.b-ok{background:var(--okbg);color:var(--ok)} .b-warn{background:var(--warnbg);color:var(--warn)} .b-over{background:var(--overbg);color:var(--over)}
+.big{font-size:27px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;margin-top:12px;color:var(--ink)}
+.bar{height:12px;border-radius:999px;background:var(--track);overflow:hidden;margin:10px 0 4px}
+.bar>span{display:block;height:100%;border-radius:999px;background:var(--ok);transition:width .4s cubic-bezier(.34,1.56,.64,1)}
+.bar>span.w{background:var(--warn)} .bar>span.o{background:var(--over)}
+.metric{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:500;color:var(--muted);margin:3px 0}
+.metric b{font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.est{color:var(--warn);font-weight:800}
+.perf{position:relative;border-top:2px dashed var(--dash);margin:13px 0 9px}
+.perf::before,.perf::after{content:"";position:absolute;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--cyan)}
+.perf::before{left:-25px} .perf::after{right:-25px}
+.hint{font-size:11px;font-weight:500;color:var(--muted);line-height:1.45}
+
+/* result box */
+.result{position:relative;margin-top:14px;padding:18px;border-radius:18px;font-size:13px;font-weight:500;display:none;overflow:hidden;box-shadow:0 8px 22px rgba(11,60,80,.12)}
+.result.show{display:block;animation:pop .2s cubic-bezier(.34,1.56,.64,1)}
+.result::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--rc,var(--ok))}
+.result.ok{background:var(--okbg);--rc:var(--ok)}
+.result.warn{background:var(--warnbg);--rc:var(--warn)}
+.result.over{background:var(--overbg);--rc:var(--over)}
+.result h4{margin:0 0 6px;font-size:16px;font-weight:800;color:var(--rc)}
+.result b{color:var(--ink);font-weight:800}
+.rec{font-size:12.5px;margin-top:8px;padding-top:8px;border-top:2px dashed var(--dash)}
+
+/* table */
+.tablewrap{background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 10px 26px rgba(11,60,80,.12)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--ink)}
+th{text-align:left;padding:11px 12px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#fff}
+td{text-align:left;padding:10px 12px;border-bottom:1px solid #EAF1F5;font-weight:500;color:var(--ink)}
+tbody tr:nth-child(even){background:#F3FBFE}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.num{font-weight:800}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.chip{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px}
+.chip-vch{background:#FFE4F1;color:#D81B75}
+.chip-exc{background:var(--overbg);color:var(--over)}
+.chip-def{background:#E1F5FD;color:#0090C7}
+#logEmpty{padding:16px;text-align:center;color:var(--muted);font-weight:500}
+
+/* settings */
+details{margin-top:30px}
+summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:11px 20px;font-weight:800;font-size:15px;color:var(--ink);box-shadow:0 8px 22px rgba(11,60,80,.12)}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"\2699";color:var(--pink);font-size:16px}
+details .panel{margin-top:12px}
+.sub{color:var(--muted);font-size:12.5px;font-weight:500;margin:0 0 14px}
+.cfgrow{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:8px;align-items:end;margin-bottom:8px}
+.cfgrow .lbl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+
+/* foot */
+.foot{font-size:11px;color:rgba(14,54,70,.72);font-weight:500;margin-top:24px;line-height:1.6}
+.foot b{color:var(--ink2);font-weight:800}
+
+#cfgWarn{background:var(--warnbg);color:var(--warn);border-radius:14px;padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:none}
+
 /* auth gate */
-#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
-#gate .box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:30px;max-width:380px;text-align:center;box-shadow:0 8px 30px rgba(15,42,74,.08)}
-#gate h1{font-size:22px;margin:0 0 6px;color:var(--navy)}
-#gate p{color:var(--muted);font-size:13px;margin:0 0 20px}
-.gbtn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);color:var(--txt);padding:11px 18px;border-radius:10px;font-weight:600;font-size:14px}
-.gbtn:hover{border-color:var(--navy2)}
+#gate{position:fixed;inset:0;background:var(--cyan);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+#gate .box{background:#fff;border-radius:24px;padding:34px 30px;max-width:380px;text-align:center;box-shadow:0 16px 40px rgba(11,60,80,.25)}
+#gate h1{font-size:24px;font-weight:900;letter-spacing:-.5px;margin:0 0 6px;color:var(--ink2)}
+#gate p{color:var(--muted);font-size:13px;font-weight:500;margin:0 0 20px}
+.gbtn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);color:var(--ink);padding:12px 20px;border-radius:999px;font-weight:800;font-size:14px;box-shadow:0 6px 16px rgba(11,60,80,.12)}
+.gbtn:hover{border-color:var(--pink)}
 #app{display:none}
-#cfgWarn{background:var(--warnbg);border:1px solid #f0dcae;color:var(--warn);border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px;display:none}
+@media(max-width:620px){.cfgrow{grid-template-columns:1fr 1fr}.hdr h1{font-size:25px}}
 </style>
 </head>
 <body>
@@ -95,26 +164,31 @@ details{margin-top:26px} summary{cursor:pointer;font-weight:700;color:var(--navy
 
 <!-- ================= APP ================= -->
 <div id="app"><div class="wrap">
- <div class="topbar">
-  <h1>Voucher &amp; Reward Cap Tracker</h1>
-  <div style="display:flex;align-items:center;gap:10px">
-   <span class="who" id="whoami"></span>
-   <button class="btn-ghost" id="signoutBtn" style="padding:6px 12px">Sign out</button>
-  </div>
- </div>
- <p class="sub">Log each purchase once. It tracks your monthly HDFC SmartBuy voucher caps (3,000 RP each since 1 Jul 2026) and your Amex milestones, and warns before a purchase overshoots a cap. Synced to your account.</p>
+ <header class="hdr">
+  <div class="hrow"><div class="rbadge">₹</div><h1>Voucher &amp; Reward Cap Tracker</h1></div>
+  <div class="hrule"></div>
+  <p class="hsub">Log each purchase once — it tracks your monthly HDFC voucher caps and Amex milestones, and warns before a purchase overshoots a cap. Synced to your account.</p>
+  <div class="monthpill"><label for="monthPick">Tracking month</label><input type="month" id="monthPick"></div>
+  <p class="hnote" id="monthNote"></p>
+  <div class="userbar"><span class="who" id="whoami"></span><button class="btn-ghost" id="signoutBtn" style="padding:8px 16px">Sign out</button></div>
+ </header>
 
  <div id="cfgWarn">⚠ Firebase isn't configured yet. Paste your project's config into <b>index.html</b> (the <code>firebaseConfig</code> object) and redeploy.</div>
 
- <!-- MONTH + ADD -->
+ <!-- 2. CHECKER -->
+ <div class="sechead"><span class="sdot pink"></span><h2>Will this purchase blow a cap?</h2></div>
  <div class="panel">
-  <div class="flex-end" style="margin-bottom:12px">
-   <div style="max-width:180px">
-    <label>Tracking month</label>
-    <input type="month" id="monthPick">
-   </div>
-   <div style="flex:0 0 auto;align-self:center;color:var(--muted);font-size:12px" id="monthNote"></div>
+  <div class="flex-end">
+   <div><label>Planned amount (₹)</label><input type="number" id="tAmt" min="0" step="1" placeholder="e.g. 15000"></div>
+   <div style="flex:1.4"><label>Card (blank = best split)</label><select id="tCard"></select></div>
+   <div style="flex:0 0 auto"><button id="testBtn">Check</button></div>
   </div>
+  <div class="result" id="testResult"></div>
+ </div>
+
+ <!-- 3. LOG A PURCHASE -->
+ <div class="sechead"><span class="sdot cyan"></span><h2>Log a purchase</h2></div>
+ <div class="panel">
   <div class="flex-end">
    <div><label>Date</label><input type="date" id="pDate"></div>
    <div style="flex:1.4"><label>Card</label><select id="pCard"></select></div>
@@ -122,39 +196,24 @@ details{margin-top:26px} summary{cursor:pointer;font-weight:700;color:var(--navy
    <div style="flex:1.2"><label>Category</label><select id="pCat"></select></div>
    <div style="flex:0 0 auto"><button class="btn-primary" id="addBtn">+ Add purchase</button></div>
   </div>
-  <div class="hint">Tip: log voucher buys with category <b>Voucher (SmartBuy)</b> — only those count toward a card's voucher cap.</div>
+  <div class="hint" style="margin-top:12px">Tip: log voucher buys with category <b>Voucher (SmartBuy)</b> — only those count toward a card's voucher cap.</div>
  </div>
 
- <!-- TEST A PURCHASE -->
- <h2>Will this purchase blow a cap?</h2>
- <div class="panel">
-  <div class="flex-end">
-   <div><label>Planned amount (₹)</label><input type="number" id="tAmt" min="0" step="1" placeholder="e.g. 15000"></div>
-   <div style="flex:1.4"><label>Card (blank = best split)</label><select id="tCard"></select></div>
-   <div style="flex:0 0 auto"><button class="btn-ghost" id="testBtn">Check</button></div>
-  </div>
-  <div class="result" id="testResult"></div>
- </div>
-
- <h2>Voucher caps — HDFC SmartBuy &amp; Amex Reward Multiplier (per month)</h2>
+ <!-- 4. CAPS -->
+ <div class="sechead"><span class="sdot gold"></span><h2>Monthly voucher caps</h2><span class="cap">HDFC SmartBuy &amp; Amex Reward Multiplier</span></div>
  <div class="grid" id="hdfcGrid"></div>
 
- <h2>American Express — milestone cards</h2>
+ <!-- 5. AMEX -->
+ <div class="sechead"><span class="sdot purple"></span><h2>American Express milestones</h2></div>
  <div class="grid" id="amexGrid"></div>
 
- <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:26px 0 10px">
-  <h2 style="margin:0">Purchase log — <span id="logMonthLbl"></span></h2>
-  <div style="display:flex;align-items:center;gap:8px">
-   <label style="margin:0">Month</label>
-   <input type="month" id="logMonth" style="width:auto">
-  </div>
- </div>
- <div class="panel" style="padding:6px 0">
+ <div class="sechead"><span class="sdot green"></span><h2>Purchase log</h2><span class="cap" id="logMonthLbl"></span><span class="spacer"></span><label for="logMonth" style="margin:0">Month</label><input type="month" id="logMonth" class="minput"></div>
+ <div class="tablewrap">
   <table>
    <thead><tr><th>Date</th><th>Card</th><th>Category</th><th class="num">Amount</th><th></th></tr></thead>
    <tbody id="logBody"></tbody>
   </table>
-  <div id="logEmpty" class="hint" style="padding:14px 16px">No purchases logged for this month yet.</div>
+  <div id="logEmpty" class="hint">No purchases logged for this month yet.</div>
  </div>
 
  <details>
@@ -206,13 +265,13 @@ const inr1=n=>"₹"+(Math.round(n*10)/10).toLocaleString("en-IN");
 const $=id=>document.getElementById(id);
 
 const DEFAULT_CARDS=[
- {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,estimate:false},
- {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,estimate:false},
- {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22},
- {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap."},
- {id:"amex_me",name:"Amex Rewards (Me)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5},
- {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5},
- {id:"amex_plat",name:"Amex Platinum Travel",bank:"Amex",kind:"amex_annual",rpPer50:1,rpValue:0.5,memStart:"2026-04-01"}
+ {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,estimate:false,accent:"#2AA8E0",ini:"IN"},
+ {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,estimate:false,accent:"#8E5BF0",ini:"DC"},
+ {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22,accent:"#10B981",ini:"BP"},
+ {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap.",accent:"#F59E0B",ini:"PC"},
+ {id:"amex_me",name:"Amex Rewards (Me)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF1E8E",ini:"ME"},
+ {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF6B3D",ini:"WF"},
+ {id:"amex_plat",name:"Amex Platinum Travel",bank:"Amex",kind:"amex_annual",rpPer50:1,rpValue:0.5,memStart:"2026-04-01",accent:"#FFC233",ini:"PT"}
 ];
 const CATS=["Voucher (SmartBuy)","Groceries","Dining / Food delivery","Online shopping","Travel","Rent","Income Tax","GST","Fuel","Utilities","Insurance","Other"];
 const IT_GST=["Income Tax","GST"];
@@ -310,16 +369,21 @@ function renderHDFC(){
     <div class="hint">Cycle ${fmtD(start)} – ${fmtD(end)}. Spend ${inr(thr)} on non-IT / non-GST purchases (vouchers count) to unlock accelerated rewards on income-tax payments. Log your other BizPower spend too for an accurate count.</div>
    </div>`;
   }
-  return `<div class="cardcell ${hdr}">
-   <span class="badge ${cls}">${lbl}</span>
-   <p class="cname">${card.name}${card.estimate?' <span class="est" title="Rate estimated — verify on statement">*</span>':''}</p>
-   <p class="ctag">${prov} · cap ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}/mo · 1 pt ≈ ${inr1(card.rpValue)}</p>
+  return `<div class="cardcell ${hdr}" style="--accent:${card.accent||'#2AA8E0'}">
+   <div class="chead">
+    <div class="cwho"><div class="avatar">${card.ini||''}</div>
+     <div><p class="cname">${card.name}${card.estimate?' <span class="est" title="Rate estimated — verify on statement">*</span>':''}</p>
+      <p class="ctag">${prov} · cap ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}/mo · 1 pt ≈ ${inr1(card.rpValue)}</p></div>
+    </div>
+    <span class="badge ${cls}">${lbl}</span>
+   </div>
    <div class="big">${inr(s.spent)} <span style="font-size:13px;color:var(--muted);font-weight:500">/ ${inr(s.capSpend)}</span></div>
    <div class="bar"><span class="${bar}" style="width:${Math.min(100,s.pct*100).toFixed(0)}%"></span></div>
    <div class="metric"><span>Capped pts earned</span><b>${Math.round(s.rpEarned).toLocaleString("en-IN")} / ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}</b></div>
    <div class="metric"><span>Value earned</span><b>${inr(s.valueEarned)}</b></div>
    <div class="metric"><span>Headroom left</span><b>${s.headroom>0?inr(s.headroom):"— none —"}</b></div>
    ${s.wasted>0?`<div class="metric"><span class="est">Wasted (below ₹${s.slab} slab)</span><b class="est">${inr(s.wasted)} → 0 pts</b></div>`:""}
+   <div class="perf"></div>
    <div class="hint">Points credited only per whole ₹${s.slab} slab. Buy in multiples of ₹${s.slab} — up to <b>${inr(s.capSpend)}</b>/month for max bonus (~${s.backPct.toFixed(1)}% back). ${card.note?card.note:"Beyond that you earn base points only."}</div>
    ${extra}
   </div>`;
@@ -334,15 +398,19 @@ function renderAmex(){
   const baseMR=Math.floor(eligible/50)*card.rpPer50;
   const m1=AMEX_MONTHLY_MILESTONES[0], m2=AMEX_MONTHLY_MILESTONES[1];
   const m1done=bigTxns>=m1.need, m2done=eligible>=m2.need;
-  html+=`<div class="cardcell hdr-amex">
-   <span class="badge ${(m1done&&m2done)?'b-ok':'b-warn'}">${(m1done&&m2done)?'MILESTONES MET':'IN PROGRESS'}</span>
-   <p class="cname">${card.name}</p>
-   <p class="ctag">1 MR / ₹50 eligible spend · monthly bonuses</p>
-   <div class="metric"><span>Eligible spend this month</span><b>${inr(eligible)}</b></div>
+  html+=`<div class="cardcell hdr-amex" style="--accent:${card.accent||'#FF1E8E'}">
+   <div class="chead">
+    <div class="cwho"><div class="avatar">${card.ini||''}</div>
+     <div><p class="cname">${card.name}</p><p class="ctag">1 MR / ₹50 eligible spend · monthly bonuses</p></div>
+    </div>
+    <span class="badge ${(m1done&&m2done)?'b-ok':'b-warn'}">${(m1done&&m2done)?'MILESTONES MET':'IN PROGRESS'}</span>
+   </div>
+   <div class="metric" style="margin-top:10px"><span>Eligible spend this month</span><b>${inr(eligible)}</b></div>
    <div class="metric"><span>Base MR points</span><b>${baseMR.toLocaleString("en-IN")}</b></div>
    <div class="bar"><span class="${m2done?'':'w'}" style="width:${Math.min(100,eligible/m2.need*100).toFixed(0)}%"></span></div>
    <div class="metric"><span>${m2.label} → +${m2.bonus} MR</span><b>${m2done?'✓ done':inr(Math.max(0,m2.need-eligible))+' to go'}</b></div>
    <div class="metric"><span>${m1.label} → +${m1.bonus} MR</span><b>${bigTxns}/${m1.need} ${m1done?'✓':''}</b></div>
+   <div class="perf"></div>
    <div class="hint">Excluded (no MR, don't count): fuel, utilities, insurance, wallet/cash. Milestone MR can't be redeemed as statement credit.</div>
   </div>`;
  });
@@ -351,13 +419,17 @@ function renderAmex(){
   const next=AMEX_ANNUAL_MILESTONES.find(m=>yr<m.need);
   const top=AMEX_ANNUAL_MILESTONES[AMEX_ANNUAL_MILESTONES.length-1];
   const denom=next?next.need:top.need;
-  html+=`<div class="cardcell hdr-amex">
-   <span class="badge ${next?'b-warn':'b-ok'}">${next?'ANNUAL':'ALL MET'}</span>
-   <p class="cname">${card.name}</p>
-   <p class="ctag">Membership year from ${card.memStart} · annual milestones</p>
+  html+=`<div class="cardcell hdr-amex" style="--accent:${card.accent||'#FFC233'}">
+   <div class="chead">
+    <div class="cwho"><div class="avatar">${card.ini||''}</div>
+     <div><p class="cname">${card.name}</p><p class="ctag">Membership year from ${card.memStart} · annual milestones</p></div>
+    </div>
+    <span class="badge ${next?'b-warn':'b-ok'}">${next?'ANNUAL':'ALL MET'}</span>
+   </div>
    <div class="big">${inr(yr)}</div>
    <div class="bar"><span class="${next?'w':''}" style="width:${Math.min(100,yr/denom*100).toFixed(0)}%"></span></div>
    ${AMEX_ANNUAL_MILESTONES.map(m=>`<div class="metric"><span>${inr(m.need)} → +${m.bonus.toLocaleString("en-IN")} MR ${m.extra}</span><b>${yr>=m.need?'✓':inr(m.need-yr)+' to go'}</b></div>`).join("")}
+   <div class="perf"></div>
    <div class="hint">Platinum Travel counts insurance/rent/tax toward these milestones even though they earn no base MR. Excluded from earning: fuel, insurance, utilities, cash, POS-EMI.</div>
   </div>`;
  });
@@ -372,8 +444,9 @@ function renderLog(){
  const allTotal=rows.reduce((s,p)=>s+p.amt,0);
  let html=rows.map(p=>{
   const c=cardById(p.card);
-  const vch=(p.cat||"").startsWith("Voucher");
-  return `<tr><td>${p.date}</td><td>${c?c.name:p.card}</td><td>${p.cat}${vch?'':''}</td><td class="num">${inr(p.amt)}</td>
+  const acc=c?(c.accent||"#94A3B8"):"#94A3B8";
+  const chipCls=(p.cat||"").startsWith("Voucher")?"chip-vch":(isExcludedCat(p.cat)?"chip-exc":"chip-def");
+  return `<tr><td>${p.date}</td><td><span class="dot" style="background:${acc}"></span>${c?c.name:p.card}</td><td><span class="chip ${chipCls}">${p.cat}</span></td><td class="num">${inr(p.amt)}</td>
    <td class="num"><button class="btn-x" data-del="${p.id}">✕</button></td></tr>`;
  }).join("");
  if(rows.length){
