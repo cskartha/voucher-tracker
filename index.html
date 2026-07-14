@@ -268,7 +268,7 @@ const $=id=>document.getElementById(id);
 const DEFAULT_CARDS=[
  {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,estimate:false,accent:"#2AA8E0",ini:"IN"},
  {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,estimate:false,accent:"#8E5BF0",ini:"DC"},
- {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22,accent:"#10B981",ini:"BP"},
+ {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:15,slab:200,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22,accent:"#10B981",ini:"BP"},
  {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap.",accent:"#F59E0B",ini:"PC"},
  {id:"amex_me",name:"Amex Rewards (Me)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF1E8E",ini:"ME"},
  {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF6B3D",ini:"WF"},
@@ -461,12 +461,14 @@ function renderLog(){
 }
 function renderConfig(){
  const area=$("cfgArea");
- area.innerHTML=`<div class="cfgrow"><div class="lbl">Voucher card</div><div class="lbl">Pts / ₹150 (capped)</div><div class="lbl">Pt value ₹</div><div class="lbl">Bonus/RP cap</div><div class="lbl">₹ cap (auto)</div></div>`+
+ area.innerHTML=`<div class="cfgrow"><div class="lbl">Voucher card</div><div class="lbl">Pts / slab</div><div class="lbl">Pt value ₹</div><div class="lbl">Bonus/RP cap</div><div class="lbl">₹ cap (auto)</div></div>`+
  CARDS.filter(c=>c.kind==="voucher").map(c=>{
-  const capSpend=Math.ceil(c.voucherRpCap/(c.rpPer150*slabOf(c)/150))*slabOf(c);
+  const slab=slabOf(c);
+  const cps=Math.round(c.rpPer150*slab/150*100)/100;
+  const capSpend=Math.ceil(c.voucherRpCap/(c.rpPer150*slab/150))*slab;
   return `<div class="cfgrow" data-id="${c.id}">
-   <div style="font-size:13px;font-weight:600">${c.name}</div>
-   <input type="number" data-f="rpPer150" value="${c.rpPer150}">
+   <div style="font-size:13px;font-weight:700">${c.name}<div style="font-weight:500;color:var(--muted);font-size:11px">per ₹${slab} slab</div></div>
+   <input type="number" step="0.01" data-f="cps" value="${cps}">
    <input type="number" step="0.1" data-f="rpValue" value="${c.rpValue}">
    <input type="number" data-f="voucherRpCap" value="${c.voucherRpCap}">
    <div style="font-size:13px;color:var(--muted);padding:8px 0">${inr(capSpend)}</div>
@@ -528,7 +530,12 @@ $("logMonth").onchange=e=>setMonth(e.target.value);
 $("saveCfg").onclick=async()=>{
  document.querySelectorAll("#cfgArea .cfgrow[data-id]").forEach(row=>{
   const c=cardById(row.dataset.id);
-  row.querySelectorAll("[data-f]").forEach(inp=>{c[inp.dataset.f]=+inp.value;});
+  const slab=slabOf(c);
+  row.querySelectorAll("[data-f]").forEach(inp=>{
+   const f=inp.dataset.f;
+   if(f==="cps") c.rpPer150=(+inp.value)*150/slab;   // stored normalized; UI edits points-per-slab
+   else c[f]=+inp.value;
+  });
  });
  const plat=document.querySelector("#cfgArea [data-plat]");
  if(plat)cardById("amex_plat").memStart=plat.value;
@@ -590,7 +597,8 @@ $("testBtn").onclick=()=>{
      else {slice=remaining;rate=x.baseRate;}
     }
     const use=Math.min(slice,remaining); if(use<=0)return;
-    if(!best || rate>best.rate+1e-9 || (Math.abs(rate-best.rate)<=1e-9 && pri>best.pri)){best={x,use,rate,pri};}
+    const srate=pri===1?Math.max(rate,0.07):rate;   // unlock-gap outranks standard voucher cards even though BizPower's own rate is lower
+    if(!best || srate>best.srate+1e-9 || (Math.abs(srate-best.srate)<=1e-9 && pri>best.pri)){best={x,use,rate,srate,pri};}
    });
    if(!best)break;
    best.x.alloc+=best.use; remaining-=best.use; totalVal+=best.use*best.rate;
