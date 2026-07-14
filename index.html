@@ -197,7 +197,7 @@ details .panel{margin-top:12px}
    <div style="flex:1.2"><label>Category</label><select id="pCat"></select></div>
    <div style="flex:0 0 auto"><button class="btn-primary" id="addBtn">+ Add purchase</button></div>
   </div>
-  <div class="hint" style="margin-top:12px">Tip: log voucher buys with category <b>Voucher (SmartBuy)</b> — only those count toward a card's voucher cap.</div>
+  <div class="hint" style="margin-top:12px">Tip: log voucher buys with category <b>Vouchers</b> — only those count toward a card's voucher cap.</div>
  </div>
 
  <!-- 4. CAPS -->
@@ -269,13 +269,13 @@ const DEFAULT_CARDS=[
  {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,estimate:false,accent:"#2AA8E0",ini:"IN"},
  {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,estimate:false,accent:"#8E5BF0",ini:"DC"},
  {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:15,slab:200,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22,accent:"#10B981",ini:"BP"},
- {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap.",accent:"#F59E0B",ini:"PC"},
+ {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap.",annualSpendCap:2000000,annualBase:116000,memStart:"2025-11-01",accent:"#F59E0B",ini:"PC"},
  {id:"amex_me",name:"Amex Rewards (Me)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF1E8E",ini:"ME"},
  {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF6B3D",ini:"WF"},
  {id:"amex_plat",name:"Amex Platinum Travel",bank:"Amex",kind:"amex_annual",rpPer50:1,rpValue:0.5,memStart:"2026-04-01",accent:"#FFC233",ini:"PT"}
 ];
-const CATS=["Voucher (SmartBuy)","Groceries","Dining / Food delivery","Online shopping","Travel","Rent","Income Tax","GST","Fuel","Utilities","Insurance","Other"];
-const IT_GST=["Income Tax","GST"];
+const CATS=["Vouchers","Groceries","Dining / Food delivery","Online shopping","Travel","Rent","Taxes","Income Tax","GST","Fuel","Utilities","Insurance","Other"];
+const IT_GST=["Income Tax","GST","Taxes"];
 const AMEX_EXCLUDED=["Fuel","Utilities","Insurance"];
 const isExcludedCat=c=>AMEX_EXCLUDED.some(e=>(c||"").startsWith(e));
 const AMEX_MONTHLY_MILESTONES=[
@@ -363,11 +363,20 @@ function renderHDFC(){
   if(card.itThreshold){
    const nit=nonITSpend(card), thr=card.itThreshold, unlocked=nit>=thr;
    const {start,end}=bizCycleWindow(card);
-   extra=`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)">
+   extra+=`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)">
     <div class="metric"><span>Non-income-tax spend (cycle)</span><b>${inr(nit)} / ${inr(thr)}</b></div>
     <div class="bar"><span class="${unlocked?'':'w'}" style="width:${Math.min(100,nit/thr*100).toFixed(0)}%"></span></div>
     <div class="metric"><span>Income-tax accelerator</span><b style="color:${unlocked?'var(--ok)':'var(--warn)'}">${unlocked?'✓ UNLOCKED':'LOCKED — '+inr(thr-nit)+' to go'}</b></div>
     <div class="hint">Cycle ${fmtD(start)} – ${fmtD(end)}. Spend ${inr(thr)} on non-IT / non-GST purchases (vouchers count) to unlock accelerated rewards on income-tax payments. Log your other BizPower spend too for an accurate count.</div>
+   </div>`;
+  }
+  if(card.annualSpendCap){
+   const yr=(card.annualBase||0)+annualSpend(card), acap=card.annualSpendCap, done=yr>=acap;
+   extra+=`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)">
+    <div class="metric"><span>Annual spend (since renewal)</span><b>${inr(yr)} / ${inr(acap)}</b></div>
+    <div class="bar"><span class="${done?'':'w'}" style="width:${Math.min(100,yr/acap*100).toFixed(0)}%"></span></div>
+    <div class="metric"><span>₹20L renewal voucher</span><b style="color:${done?'var(--ok)':'var(--warn)'}">${done?'✓ EARNED':inr(acap-yr)+' to go'}</b></div>
+    <div class="hint">Counts every spend on this card (vouchers, taxes, all) in the membership year${card.memStart?' from '+card.memStart:''}. Set your opening 'spend since renewal' in Settings.</div>
    </div>`;
   }
   return `<div class="cardcell ${hdr}" style="--accent:${card.accent||'#2AA8E0'}">
@@ -475,7 +484,8 @@ function renderConfig(){
   </div>`;
  }).join("")+
  `<div class="cfgrow" style="margin-top:6px"><div class="lbl">Amex Platinum membership-year start</div><input type="date" data-plat="1" value="${cardById('amex_plat').memStart}"><div></div><div></div><div></div></div>`+
- `<div class="cfgrow"><div class="lbl">BizPower cycle start day (1–28)</div><input type="number" min="1" max="28" data-bizday="1" value="${cardById('bizpower').cycleDay||1}"><div class="lbl" style="grid-column:span 1">Non-IT unlock ₹</div><input type="number" data-bizthr="1" value="${cardById('bizpower').itThreshold||25000}"><div></div></div>`;
+ `<div class="cfgrow"><div class="lbl">BizPower cycle start day (1–28)</div><input type="number" min="1" max="28" data-bizday="1" value="${cardById('bizpower').cycleDay||1}"><div class="lbl" style="grid-column:span 1">Non-IT unlock ₹</div><input type="number" data-bizthr="1" value="${cardById('bizpower').itThreshold||25000}"><div></div></div>`+
+ `<div class="cfgrow"><div class="lbl">Amex Platinum (Charge) year start</div><input type="date" data-pcstart="1" value="${cardById('amex_plat_charge').memStart||''}"><div class="lbl">Spend since renewal ₹</div><input type="number" data-pcbase="1" value="${cardById('amex_plat_charge').annualBase||0}"><div></div></div>`;
 }
 const monthLabel=m=>{const[y,mo]=m.split("-");return new Date(y,mo-1,1).toLocaleString("en-IN",{month:"long",year:"numeric"});};
 function renderAll(){ if(!user)return; renderHDFC();renderAmex();renderLog();
@@ -543,6 +553,10 @@ $("saveCfg").onclick=async()=>{
  if(bd)cardById("bizpower").cycleDay=Math.min(28,Math.max(1,+bd.value||1));
  const bt=document.querySelector("#cfgArea [data-bizthr]");
  if(bt)cardById("bizpower").itThreshold=+bt.value||25000;
+ const pcs=document.querySelector("#cfgArea [data-pcstart]");
+ if(pcs)cardById("amex_plat_charge").memStart=pcs.value;
+ const pcb=document.querySelector("#cfgArea [data-pcbase]");
+ if(pcb)cardById("amex_plat_charge").annualBase=+pcb.value||0;
  try{ await saveSettings(); renderConfig();renderAll(); alert("Rates saved."); }
  catch(e){ alert("Couldn't save settings: "+e.message); }
 };
