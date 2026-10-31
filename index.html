@@ -196,11 +196,11 @@ details .panel{margin-top:12px}
   <div class="flex-end">
    <div><label>Date</label><input type="date" id="pDate"></div>
    <div style="flex:1.4"><label>Card</label><select id="pCard"></select></div>
-   <div><label>Amount (₹)</label><input type="number" id="pAmt" min="0" step="1" placeholder="e.g. 5000"></div>
+   <div><label>Amount (₹)</label><input type="number" id="pAmt" step="1" placeholder="5000 (−ve for refund)"></div>
    <div style="flex:1.2"><label>Category</label><select id="pCat"></select></div>
    <div style="flex:0 0 auto"><button class="btn-primary" id="addBtn">+ Add purchase</button></div>
   </div>
-  <div class="hint" style="margin-top:12px">Tip: on HDFC, <b>5x vouchers</b> hit the voucher cap; <b>5x / 10x shopping</b> count only against the overall SmartBuy pile; <b>non-5x vouchers</b> have no cap.</div>
+  <div class="hint" style="margin-top:12px">Tip: on HDFC, <b>5x vouchers</b> hit the voucher cap; <b>5x / 10x shopping</b> count only against the overall SmartBuy pile; <b>non-5x vouchers</b> and <b>Other (non-SmartBuy)</b> have no cap (Other still counts toward BizPower's ₹25k non-IT unlock). For a <b>refund/return</b>, add a <b>negative amount</b> in the same category — it claws the headroom back.</div>
  </div>
 
  <!-- 4. CAPS -->
@@ -264,8 +264,8 @@ if(CONFIGURED){
   auth=getAuth(app); db=getFirestore(app);
 }
 
-const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
-const inr1=n=>"₹"+(Math.round(n*10)/10).toLocaleString("en-IN");
+const inr=n=>(n<0?"-₹":"₹")+Math.abs(Math.round(n)).toLocaleString("en-IN");
+const inr1=n=>(n<0?"-₹":"₹")+(Math.abs(Math.round(n*10)/10)).toLocaleString("en-IN");
 const $=id=>document.getElementById(id);
 
 const DEFAULT_CARDS=[
@@ -277,7 +277,7 @@ const DEFAULT_CARDS=[
  {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF6B3D",ini:"WF"},
  {id:"amex_plat",name:"Amex Platinum Travel",bank:"Amex",kind:"amex_annual",rpPer50:1,rpValue:0.5,memStart:"2026-04-01",accent:"#FFC233",ini:"PT"}
 ];
-const CATS_HDFC=["5x vouchers","Non-5x vouchers","5x shopping","10x shopping","Income tax"];
+const CATS_HDFC=["5x vouchers","Non-5x vouchers","5x shopping","10x shopping","Income tax","Other (non-SmartBuy)"];
 const CATS_AMEX=["Vouchers","Non-vouchers"];
 const catsFor=cardId=>{const c=cardById(cardId);return (c&&c.bank==="Amex")?CATS_AMEX:CATS_HDFC;};
 // voucher-cap counts "5x vouchers" (HDFC) and "Vouchers" (Amex) — never the "Non-" ones
@@ -336,7 +336,7 @@ function voucherStats(card){
  const purch=monthPurch(card.id).filter(p=>isVoucherCat(p.cat));
  const spent=purch.reduce((s,p)=>s+p.amt,0);
  let cappedPts=0,totalPts=0,counted=0;
- purch.forEach(p=>{const n=Math.floor(p.amt/slab);cappedPts+=n*cps;totalPts+=n*tps;counted+=n*slab;});
+ purch.forEach(p=>{const n=Math.trunc(p.amt/slab);cappedPts+=n*cps;totalPts+=n*tps;counted+=n*slab;});
  const wasted=Math.max(0,spent-counted);
  const rpEarned=Math.min(cappedPts,card.voucherRpCap);
  const slabsForCap=Math.ceil(card.voucherRpCap/cps);
@@ -354,8 +354,8 @@ function overallSmartBuy(card){
  const base=card.base||5;
  let shop5=0,shop10=0,s5rp=0,s10rp=0;
  monthPurch(card.id).forEach(p=>{
-  if(p.cat==="5x shopping"){shop5+=p.amt; s5rp+=Math.floor(p.amt/150)*base*5;}
-  else if(p.cat==="10x shopping"){shop10+=p.amt; s10rp+=Math.floor(p.amt/150)*base*10;}
+  if(p.cat==="5x shopping"){shop5+=p.amt; s5rp+=Math.trunc(p.amt/150)*base*5;}
+  else if(p.cat==="10x shopping"){shop10+=p.amt; s10rp+=Math.trunc(p.amt/150)*base*10;}
  });
  const vRp=Math.min(voucherStats(card).rpEarned, card.voucherRpCap);
  const cap=card.overallRpCap||15000;
@@ -441,7 +441,7 @@ function renderAmex(){
   const ps=amexMonthAll(card.id);
   const eligible=ps.filter(p=>!isExcludedCat(p.cat)).reduce((s,p)=>s+p.amt,0);
   const bigTxns=ps.filter(p=>!isExcludedCat(p.cat)&&p.amt>=1500).length;
-  const baseMR=Math.floor(eligible/50)*card.rpPer50;
+  const baseMR=Math.trunc(eligible/50)*card.rpPer50;
   const m1=AMEX_MONTHLY_MILESTONES[0], m2=AMEX_MONTHLY_MILESTONES[1];
   const m1done=bigTxns>=m1.need, m2done=eligible>=m2.need;
   html+=`<div class="cardcell hdr-amex" style="--accent:${card.accent||'#FF1E8E'}">
@@ -565,7 +565,7 @@ function subscribe(){
 // ================= EVENTS =================
 $("addBtn").onclick=async()=>{
  const amt=+$("pAmt").value, date=$("pDate").value;
- if(!amt||amt<=0){alert("Enter an amount.");return;}
+ if(!amt){alert("Enter an amount (use a negative value for a refund).");return;}
  if(!date){alert("Pick a date.");return;}
  $("addBtn").disabled=true;
  try{ await addPurchase(date,$("pCard").value,$("pCat").value,amt); $("pAmt").value=""; }
