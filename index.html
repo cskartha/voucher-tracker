@@ -183,7 +183,8 @@ details .panel{margin-top:12px}
  <div class="panel">
   <div class="flex-end">
    <div><label>Planned amount (₹)</label><input type="number" id="tAmt" min="0" step="1" placeholder="e.g. 15000"></div>
-   <div style="flex:1.4"><label>Card (blank = best split)</label><select id="tCard"></select></div>
+   <div><label>Spend type</label><select id="tType"><option value="voucher">5x voucher</option><option value="5x">5x shopping</option><option value="10x">10x shopping</option></select></div>
+   <div style="flex:1.2"><label>Card (blank = best)</label><select id="tCard"></select></div>
    <div style="flex:0 0 auto"><button id="testBtn">Check</button></div>
   </div>
   <div class="result" id="testResult"></div>
@@ -199,7 +200,7 @@ details .panel{margin-top:12px}
    <div style="flex:1.2"><label>Category</label><select id="pCat"></select></div>
    <div style="flex:0 0 auto"><button class="btn-primary" id="addBtn">+ Add purchase</button></div>
   </div>
-  <div class="hint" style="margin-top:12px">Tip: log voucher buys with category <b>Vouchers</b> — only those count toward a card's voucher cap.</div>
+  <div class="hint" style="margin-top:12px">Tip: on HDFC, <b>5x vouchers</b> hit the voucher cap; <b>5x / 10x shopping</b> count only against the overall SmartBuy pile; <b>non-5x vouchers</b> have no cap.</div>
  </div>
 
  <!-- 4. CAPS -->
@@ -268,18 +269,21 @@ const inr1=n=>"₹"+(Math.round(n*10)/10).toLocaleString("en-IN");
 const $=id=>document.getElementById(id);
 
 const DEFAULT_CARDS=[
- {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,estimate:false,accent:"#2AA8E0",ini:"IN"},
- {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,estimate:false,accent:"#8E5BF0",ini:"DC"},
- {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:15,slab:200,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,estimate:true,priority:1,itThreshold:25000,cycleDay:22,accent:"#10B981",ini:"BP"},
+ {id:"infinia",name:"HDFC Infinia",bank:"HDFC",kind:"voucher",rpPer150:20,rpValue:1.0,voucherRpCap:3000,overallRpCap:15000,base:5,estimate:false,accent:"#2AA8E0",ini:"IN"},
+ {id:"dcb",name:"HDFC Diners Club Black",bank:"HDFC",kind:"voucher",rpPer150:10,rpValue:1.0,voucherRpCap:3000,overallRpCap:7500,base:5,estimate:false,accent:"#8E5BF0",ini:"DC"},
+ {id:"bizpower",name:"HDFC BizPower",bank:"HDFC",kind:"voucher",rpPer150:15,slab:200,rpValue:0.5,voucherRpCap:3000,overallRpCap:4000,base:4,estimate:true,priority:1,itThreshold:25000,cycleDay:22,accent:"#10B981",ini:"BP"},
  {id:"amex_plat_charge",name:"Amex Platinum (Charge)",bank:"Amex",kind:"voucher",provider:"Reward Multiplier",rpPer150:15,totalRpPer150:18.75,rpValue:0.5,voucherRpCap:25000,slab:40,capLabel:"bonus MR",note:"5X via Reward Multiplier (18.75 MR/₹150 incl. base; 15 is the capped bonus). Bonus caps at 25,000 MR/mo ≈ ₹2.5L voucher spend. Limited brands (no Amazon); bonus posts later. Base 1 MR/₹40 keeps earning past the cap.",annualSpendCap:2000000,annualBase:116000,memStart:"2025-11-01",accent:"#F59E0B",ini:"PC"},
  {id:"amex_me",name:"Amex Rewards (Me)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF1E8E",ini:"ME"},
  {id:"amex_wife",name:"Amex Rewards (Wife)",bank:"Amex",kind:"amex_monthly",rpPer50:1,rpValue:0.5,accent:"#FF6B3D",ini:"WF"},
  {id:"amex_plat",name:"Amex Platinum Travel",bank:"Amex",kind:"amex_annual",rpPer50:1,rpValue:0.5,memStart:"2026-04-01",accent:"#FFC233",ini:"PT"}
 ];
-const CATS=["Vouchers","Groceries","Dining / Food delivery","Online shopping","Travel","Rent","Taxes","Income Tax","GST","Fuel","Utilities","Insurance","Other"];
-const IT_GST=["Income Tax","GST","Taxes"];
-const AMEX_EXCLUDED=["Fuel","Utilities","Insurance"];
-const isExcludedCat=c=>AMEX_EXCLUDED.some(e=>(c||"").startsWith(e));
+const CATS_HDFC=["5x vouchers","Non-5x vouchers","5x shopping","10x shopping","Income tax"];
+const CATS_AMEX=["Vouchers","Non-vouchers"];
+const catsFor=cardId=>{const c=cardById(cardId);return (c&&c.bank==="Amex")?CATS_AMEX:CATS_HDFC;};
+// voucher-cap counts "5x vouchers" (HDFC) and "Vouchers" (Amex) — never the "Non-" ones
+const isVoucherCat=c=>{c=(c||"").toLowerCase();return c.includes("voucher")&&!c.includes("non");};
+const isTaxCat=c=>/tax|gst/i.test(c||"");
+const isExcludedCat=()=>false;   // Amex now tracks total spend; no category exclusions
 const AMEX_MONTHLY_MILESTONES=[
  {label:"4 transactions ≥ ₹1,500",kind:"txncount",need:4,minTxn:1500,bonus:1000},
  {label:"₹20,000 total spend",kind:"spend",need:20000,bonus:1000}
@@ -318,7 +322,7 @@ function nonITSpend(card){
  const {start,end}=bizCycleWindow(card);
  return PURCH.filter(p=>p.card===card.id)
    .filter(p=>{const d=new Date(p.date);return d>=start&&d<end;})
-   .filter(p=>!IT_GST.includes(p.cat))
+   .filter(p=>!isTaxCat(p.cat))
    .reduce((s,p)=>s+p.amt,0);
 }
 const fmtD=d=>d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
@@ -329,7 +333,7 @@ function voucherStats(card){
  const slab=slabOf(card);
  const cps=card.rpPer150*slab/150;
  const tps=(card.totalRpPer150||card.rpPer150)*slab/150;
- const purch=monthPurch(card.id).filter(p=>(p.cat||"").startsWith("Voucher"));
+ const purch=monthPurch(card.id).filter(p=>isVoucherCat(p.cat));
  const spent=purch.reduce((s,p)=>s+p.amt,0);
  let cappedPts=0,totalPts=0,counted=0;
  purch.forEach(p=>{const n=Math.floor(p.amt/slab);cappedPts+=n*cps;totalPts+=n*tps;counted+=n*slab;});
@@ -345,22 +349,51 @@ function voucherStats(card){
  return {slab,cps,tps,spent,capSpend,rpEarned,pct,headroom,valueEarned,backPct,wasted};
 }
 
+// ---- overall SmartBuy pile: vouchers + 5x/10x shopping, capped at the card's overall RP cap (HDFC only) ----
+function overallSmartBuy(card){
+ const base=card.base||5;
+ let shop5=0,shop10=0,s5rp=0,s10rp=0;
+ monthPurch(card.id).forEach(p=>{
+  if(p.cat==="5x shopping"){shop5+=p.amt; s5rp+=Math.floor(p.amt/150)*base*5;}
+  else if(p.cat==="10x shopping"){shop10+=p.amt; s10rp+=Math.floor(p.amt/150)*base*10;}
+ });
+ const vRp=Math.min(voucherStats(card).rpEarned, card.voucherRpCap);
+ const cap=card.overallRpCap||15000;
+ const usedRaw=vRp+s5rp+s10rp;
+ return {shop5,shop10,s5rp,s10rp,vRp,cap,usedRP:Math.min(usedRaw,cap),headroom:Math.max(0,cap-usedRaw),pct:cap?usedRaw/cap:0};
+}
+
 // ================= RENDER =================
+function fillCats(){
+ const sel=$("pCat"), prev=sel.value;
+ sel.innerHTML=catsFor($("pCard").value).map(c=>`<option${c===prev?" selected":""}>${c}</option>`).join("");
+}
 function fillSelectors(){
- $("pCat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("");
  const cardOpts=CARDS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
  $("pCard").innerHTML=cardOpts;
  $("tCard").innerHTML=`<option value="">— best split across cards —</option>`+cardOpts;
+ $("pCard").onchange=fillCats;
+ fillCats();
 }
 function renderHDFC(){
  $("hdfcGrid").innerHTML=CARDS.filter(c=>c.kind==="voucher").map(card=>{
   const s=voucherStats(card);
-  let cls="b-ok",bar="",lbl="OK";
-  if(s.pct>=1){cls="b-over";bar="o";lbl="CAP HIT";}
-  else if(s.pct>=0.8){cls="b-warn";bar="w";lbl="NEAR CAP";}
+  const isHDFC=card.bank==="HDFC";
+  const o=isHDFC?overallSmartBuy(card):null;
+  const vbar=s.pct>=1?"o":(s.pct>=0.8?"w":"");
+  const obar=o?(o.pct>=1?"o":(o.pct>=0.8?"w":"")):"";
+  const mx=o?Math.max(s.pct,o.pct):s.pct;
+  const cls=mx>=1?"b-over":(mx>=0.8?"b-warn":"b-ok");
+  const lbl=mx>=1?"CAP HIT":(mx>=0.8?"NEAR":"OK");
   const unit=card.capLabel||"RP";
   const hdr=card.bank==="Amex"?"hdr-amex":"hdr-hdfc";
   const prov=card.provider||"SmartBuy";
+  const overallBlock=isHDFC?`
+   <div class="metric" style="margin-top:12px;color:var(--ink);font-weight:800"><span>SmartBuy pile (all accel.)</span><b>${Math.round(o.usedRP).toLocaleString("en-IN")} / ${o.cap.toLocaleString("en-IN")} RP</b></div>
+   <div class="bar"><span class="${obar}" style="width:${Math.min(100,o.pct*100).toFixed(0)}%"></span></div>
+   ${o.shop5>0?`<div class="metric"><span>5x shopping</span><b>${inr(o.shop5)} · ${Math.round(o.s5rp).toLocaleString("en-IN")} RP</b></div>`:""}
+   ${o.shop10>0?`<div class="metric"><span>10x shopping</span><b>${inr(o.shop10)} · ${Math.round(o.s10rp).toLocaleString("en-IN")} RP</b></div>`:""}
+   <div class="metric"><span>Pile headroom</span><b>${o.headroom>0?Math.round(o.headroom).toLocaleString("en-IN")+" RP":"— full —"}</b></div>`:"";
   let extra="";
   if(card.itThreshold){
    const nit=nonITSpend(card), thr=card.itThreshold, unlocked=nit>=thr;
@@ -389,12 +422,13 @@ function renderHDFC(){
     </div>
     <span class="badge ${cls}">${lbl}</span>
    </div>
-   <div class="big">${inr(s.spent)} <span style="font-size:13px;color:var(--muted);font-weight:500">/ ${inr(s.capSpend)}</span></div>
-   <div class="bar"><span class="${bar}" style="width:${Math.min(100,s.pct*100).toFixed(0)}%"></span></div>
-   <div class="metric"><span>Capped pts earned</span><b>${Math.round(s.rpEarned).toLocaleString("en-IN")} / ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}</b></div>
+   <div class="big">${inr(s.spent)} <span style="font-size:13px;color:var(--muted);font-weight:500">/ ${inr(s.capSpend)} vouchers</span></div>
+   <div class="bar"><span class="${vbar}" style="width:${Math.min(100,s.pct*100).toFixed(0)}%"></span></div>
+   <div class="metric"><span>Voucher pts (capped)</span><b>${Math.round(s.rpEarned).toLocaleString("en-IN")} / ${card.voucherRpCap.toLocaleString("en-IN")} ${unit}</b></div>
    <div class="metric"><span>Value earned</span><b>${inr(s.valueEarned)}</b></div>
-   <div class="metric"><span>Headroom left</span><b>${s.headroom>0?inr(s.headroom):"— none —"}</b></div>
+   <div class="metric"><span>Voucher headroom</span><b>${s.headroom>0?inr(s.headroom):"— none —"}</b></div>
    ${s.wasted>0?`<div class="metric"><span class="est">Wasted (below ₹${s.slab} slab)</span><b class="est">${inr(s.wasted)} → 0 pts</b></div>`:""}
+   ${overallBlock}
    <div class="perf"></div>
    <div class="hint">Points credited only per whole ₹${s.slab} slab. Buy in multiples of ₹${s.slab} — up to <b>${inr(s.capSpend)}</b>/month for max bonus (~${s.backPct.toFixed(1)}% back). ${card.note?card.note:"Beyond that you earn base points only."}</div>
    ${extra}
@@ -423,7 +457,7 @@ function renderAmex(){
    <div class="metric"><span>${m2.label} → +${m2.bonus} MR</span><b>${m2done?'✓ done':inr(Math.max(0,m2.need-eligible))+' to go'}</b></div>
    <div class="metric"><span>${m1.label} → +${m1.bonus} MR</span><b>${bigTxns}/${m1.need} ${m1done?'✓':''}</b></div>
    <div class="perf"></div>
-   <div class="hint">Excluded (no MR, don't count): fuel, utilities, insurance, wallet/cash. Milestone MR can't be redeemed as statement credit.</div>
+   <div class="hint">Counts all spend logged on this card. 4 purchases of ₹1,500+ → +1,000 MR; ₹20,000 total → +1,000 MR. Milestone MR can't be redeemed as statement credit.</div>
   </div>`;
  });
  CARDS.filter(c=>c.kind==="amex_annual").forEach(card=>{
@@ -452,12 +486,12 @@ function renderLog(){
  const body=$("logBody");
  $("logMonthLbl").textContent=monthLabel(MONTH);
  $("logEmpty").style.display=rows.length?"none":"block";
- const voucherTotal=rows.filter(p=>(p.cat||"").startsWith("Voucher")).reduce((s,p)=>s+p.amt,0);
+ const voucherTotal=rows.filter(p=>isVoucherCat(p.cat)).reduce((s,p)=>s+p.amt,0);
  const allTotal=rows.reduce((s,p)=>s+p.amt,0);
  let html=rows.map(p=>{
   const c=cardById(p.card);
   const acc=c?(c.accent||"#94A3B8"):"#94A3B8";
-  const chipCls=(p.cat||"").startsWith("Voucher")?"chip-vch":(isExcludedCat(p.cat)?"chip-exc":"chip-def");
+  const chipCls=isVoucherCat(p.cat)?"chip-vch":(isTaxCat(p.cat)?"chip-exc":"chip-def");
   return `<tr><td>${p.date}</td><td><span class="dot" style="background:${acc}"></span>${c?c.name:p.card}</td><td><span class="chip ${chipCls}">${p.cat}</span></td><td class="num">${inr(p.amt)}</td>
    <td class="num"><button class="btn-x" data-del="${p.id}">✕</button></td></tr>`;
  }).join("");
@@ -485,6 +519,8 @@ function renderConfig(){
    <div style="font-size:13px;color:var(--muted);padding:8px 0">${inr(capSpend)}</div>
   </div>`;
  }).join("")+
+ `<div class="cfgrow" style="margin-top:14px"><div class="lbl">HDFC SmartBuy</div><div class="lbl">Base RP / ₹150</div><div class="lbl">Overall cap (RP)</div><div></div><div></div></div>`+
+ CARDS.filter(c=>c.kind==="voucher"&&c.bank==="HDFC").map(c=>`<div class="cfgrow" data-baseid="${c.id}"><div style="font-size:13px;font-weight:700">${c.name}</div><input type="number" step="0.5" data-bf="base" value="${c.base||5}"><input type="number" data-bf="overallRpCap" value="${c.overallRpCap||15000}"><div></div><div></div></div>`).join("")+
  `<div class="cfgrow" style="margin-top:6px"><div class="lbl">Amex Platinum membership-year start</div><input type="date" data-plat="1" value="${cardById('amex_plat').memStart}"><div></div><div></div><div></div></div>`+
  `<div class="cfgrow"><div class="lbl">BizPower cycle start day (1–28)</div><input type="number" min="1" max="28" data-bizday="1" value="${cardById('bizpower').cycleDay||1}"><div class="lbl" style="grid-column:span 1">Non-IT unlock ₹</div><input type="number" data-bizthr="1" value="${cardById('bizpower').itThreshold||25000}"><div></div></div>`+
  `<div class="cfgrow"><div class="lbl">Amex Platinum (Charge) year start</div><input type="date" data-pcstart="1" value="${cardById('amex_plat_charge').memStart||''}"><div class="lbl">Spend since renewal ₹</div><input type="number" data-pcbase="1" value="${cardById('amex_plat_charge').annualBase||0}"><div></div></div>`;
@@ -549,6 +585,10 @@ $("saveCfg").onclick=async()=>{
    else c[f]=+inp.value;
   });
  });
+ document.querySelectorAll("#cfgArea .cfgrow[data-baseid]").forEach(row=>{
+  const c=cardById(row.dataset.baseid);
+  row.querySelectorAll("[data-bf]").forEach(inp=>{ c[inp.dataset.bf]=+inp.value; });
+ });
  const plat=document.querySelector("#cfgArea [data-plat]");
  if(plat)cardById("amex_plat").memStart=plat.value;
  const bd=document.querySelector("#cfgArea [data-bizday]");
@@ -578,11 +618,15 @@ $("testBtn").onclick=()=>{
  const box=$("testResult");
  if(!amt||amt<=0){box.className="result show warn";box.innerHTML="Enter a planned amount first.";return;}
  const chosen=$("tCard").value;
+ const type=$("tType").value;          // "voucher" | "5x" | "10x"
+ const mult=type==="10x"?10:5;
  function buildCandidates(){
   const list=[];
   CARDS.filter(c=>c.kind==="voucher").forEach(c=>{
    const s=voucherStats(c);
-   list.push({card:c,type:"flat",filled:s.spent,cap:s.capSpend,rate:s.backPct/100,alloc:0,
+   const perR=s.cps/s.slab;
+   const pileCap=c.bank==="HDFC"?s.spent+overallSmartBuy(c).headroom/perR:Infinity;  // vouchers also draw from the overall pile
+   list.push({card:c,type:"flat",filled:s.spent,cap:Math.min(s.capSpend,pileCap),rate:s.backPct/100,alloc:0,
      nonITbase:c.itThreshold?nonITSpend(c):0});
   });
   CARDS.filter(c=>c.kind==="amex_monthly").forEach(c=>{
@@ -622,6 +666,43 @@ $("testBtn").onclick=()=>{
   }
   return {cands:order,leftover:remaining,totalVal};
  }
+
+ // ---- 5x / 10x SHOPPING (HDFC overall-pile only) ----
+ if(type!=="voucher"){
+  const hdfc=CARDS.filter(c=>c.kind==="voucher"&&c.bank==="HDFC");
+  const shopEval=c=>{
+   const base=c.base||5, slabs=Math.floor(amt/150), grossRP=slabs*base*mult;
+   const room=overallSmartBuy(c).headroom, earnRP=Math.min(grossRP,room);
+   return {c,slabs,grossRP,room,earnRP,wasted:amt-slabs*150,val:earnRP*c.rpValue,
+     valuePerR:base*mult*c.rpValue/150,fits:grossRP<=room+1e-9};
+  };
+  function bestShopAlt(excludeId){
+   const alts=hdfc.filter(c=>c.id!==excludeId).map(c=>({c,room:overallSmartBuy(c).headroom})).filter(x=>x.room>0).sort((a,b)=>b.room-a.room);
+   return alts.length?`Most pile room elsewhere: <b>${alts[0].c.name}</b> (${Math.round(alts[0].room).toLocaleString("en-IN")} RP).`:"";
+  }
+  if(chosen){
+   const c=cardById(chosen);
+   if(c.bank!=="HDFC"){box.className="result show warn";box.innerHTML=`<h4>${c.name}: no SmartBuy shopping cap</h4>5x/10x SmartBuy shopping tracking applies to the HDFC cards. On Amex, just log it as a normal spend.`;return;}
+   const r=shopEval(c), wn=r.wasted>0?`<br><span class="est">₹${r.wasted} is below a full ₹150 slab — earns 0.</span>`:"";
+   if(r.fits){
+    box.className="result show ok";
+    box.innerHTML=`<h4>✓ Fits on ${c.name}</h4><b>${inr(amt)}</b> of ${mult}x shopping = ${r.slabs}×₹150 → <b>${Math.round(r.earnRP).toLocaleString("en-IN")} RP</b> ≈ <b>${inr(r.val)}</b>.<br>SmartBuy pile left after: <b>${Math.round(r.room-r.grossRP).toLocaleString("en-IN")} RP</b>.${wn}`;
+   }else{
+    box.className="result show over";
+    box.innerHTML=`<h4>⚠ Overflows the SmartBuy pile on ${c.name}</h4>Only <b>${Math.round(r.earnRP).toLocaleString("en-IN")} RP</b> still earns accelerated (pile nearly full); the rest earns base only.<br>${bestShopAlt(c.id)}${wn}`;
+   }
+   return;
+  }
+  const ranked=hdfc.map(shopEval).sort((a,b)=>(b.fits-a.fits)||(b.valuePerR-a.valuePerR)||(b.room-a.room));
+  const top=ranked[0];
+  box.className="result show "+(top.fits?"ok":"warn");
+  let hh=`<h4>${top.fits?"✓ Best card: "+top.c.name:"Best option: "+top.c.name}</h4>`;
+  hh+=top.fits?`Put the full <b>${inr(amt)}</b> of ${mult}x shopping here → <b>${Math.round(top.earnRP).toLocaleString("en-IN")} RP</b> ≈ <b>${inr(top.val)}</b>.`:`Only <b>${Math.round(top.earnRP).toLocaleString("en-IN")} RP</b> fits its pile; the rest earns base only.`;
+  hh+=`<div class="rec"><b>SmartBuy pile headroom now:</b><br>`+ranked.map(r=>`${r.c.name}: <b>${Math.round(r.room).toLocaleString("en-IN")} RP</b> left · ${(r.valuePerR*100).toFixed(1)}% back`).join("<br>")+`</div>`;
+  box.innerHTML=hh;
+  return;
+ }
+
  if(chosen){
   const c=cardById(chosen);
   if(c.kind==="amex_monthly"){
@@ -649,12 +730,14 @@ $("testBtn").onclick=()=>{
   const wastedThis=amt-slabs*s.slab;
   const grossPts=slabs*s.cps;
   const capRoomPts=Math.max(0,c.voucherRpCap-s.rpEarned);
-  const earnPts=Math.min(grossPts,capRoomPts);
+  const pileRoomPts=c.bank==="HDFC"?overallSmartBuy(c).headroom:Infinity;
+  const earnPts=Math.min(grossPts,capRoomPts,pileRoomPts);
+  const pileLimited=pileRoomPts<capRoomPts && grossPts>pileRoomPts;
   const basePart=slabs*(s.tps-s.cps);
   const val=(earnPts+basePart)*c.rpValue;
   const unit=c.capLabel||"RP";
   const wnote=wastedThis>0?`<br><span class="est">₹${wastedThis} is below a full ₹${s.slab} slab — earns 0. Round to a multiple of ₹${s.slab}.</span>`:"";
-  if(grossPts<=capRoomPts+1e-9 && amt<=s.headroom){
+  if(grossPts<=capRoomPts+1e-9 && grossPts<=pileRoomPts+1e-9 && amt<=s.headroom){
    box.className="result show ok";
    box.innerHTML=`<h4>✓ Fits on ${c.name}</h4>
     <b>${inr(amt)}</b> = ${slabs} × ₹${s.slab} → <b>${Math.round(earnPts).toLocaleString("en-IN")} ${unit}</b> ≈ <b>${inr(val)}</b>.<br>
@@ -662,8 +745,8 @@ $("testBtn").onclick=()=>{
   }else{
    box.className="result show over";
    box.innerHTML=`<h4>⚠ Exceeds the cap on ${c.name}</h4>
-    Only <b>${Math.round(earnPts).toLocaleString("en-IN")} ${unit}</b> (≈${inr(s.headroom)} of spend) still earns the bonus; the rest earns base only.<br>
-    Leave the card blank and hit Check for the best split.${wnote}`;
+    Only <b>${Math.round(earnPts).toLocaleString("en-IN")} ${unit}</b> still earns the bonus; the rest earns base only.<br>
+    ${pileLimited?"<b>SmartBuy pile</b> is the limiter here — "+Math.round(pileRoomPts).toLocaleString("en-IN")+" RP left in the overall cap.<br>":""}Leave the card blank and hit Check for the best split.${wnote}`;
   }
  }else{
   const {cands,leftover,totalVal}=marginalPlan(amt);
