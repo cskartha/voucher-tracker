@@ -154,13 +154,15 @@ details .panel{margin-top:12px}
 <div id="gate">
  <div class="box">
   <h1>Voucher Tracker</h1>
-  <p>Sign in to sync your voucher caps and Amex milestones across all your devices.</p>
-  <button class="gbtn" id="signinBtn">
-   <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 2.9-2.2 5.4-4.7 7l7.3 5.7c4.3-3.9 6.8-9.7 6.8-17.2z"/><path fill="#FBBC05" d="M10.3 28.4a14.5 14.5 0 0 1 0-8.8l-7.8-6.1a24 24 0 0 0 0 21l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.4 0-11.8-3.7-13.7-9l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
-   Sign in with Google
-  </button>
-  <p id="gateErr" style="color:var(--over);margin-top:16px;display:none"></p>
-  <p style="margin-top:22px;font-size:11px">First time? Make sure this site's domain is added under Firebase &rarr; Authentication &rarr; Settings &rarr; Authorized domains.</p>
+  <p>Sign in to sync your voucher caps and Amex milestones across your devices.</p>
+  <div style="text-align:left">
+   <label for="gateEmail">Email</label>
+   <input type="email" id="gateEmail" autocomplete="username" placeholder="you@example.com">
+   <label for="gatePass" style="margin-top:12px">Password</label>
+   <input type="password" id="gatePass" autocomplete="current-password" placeholder="••••••••">
+  </div>
+  <button class="btn-primary" id="signinBtn" style="width:100%;margin-top:18px">Sign in</button>
+  <p id="gateErr" style="color:var(--over);margin-top:14px;display:none;font-size:12.5px"></p>
  </div>
 </div>
 
@@ -249,8 +251,8 @@ const firebaseConfig = {
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
-         onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, query, where, onSnapshot, addDoc, deleteDoc, doc,
          getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -502,7 +504,7 @@ async function clearMonth(){
 }
 async function loadSettings(){
  try{
-  const snap=await getDoc(doc(db,"settings",user.uid));
+  const snap=await getDoc(doc(db,"settings","shared"));
   if(snap.exists()&&Array.isArray(snap.data().cards)){
    const saved=snap.data().cards;
    DEFAULT_CARDS.forEach(d=>{
@@ -514,11 +516,11 @@ async function loadSettings(){
   } else { CARDS=JSON.parse(JSON.stringify(DEFAULT_CARDS)); }
  }catch(e){ CARDS=JSON.parse(JSON.stringify(DEFAULT_CARDS)); }
 }
-async function saveSettings(){ await setDoc(doc(db,"settings",user.uid),{cards:CARDS}); }
+async function saveSettings(){ await setDoc(doc(db,"settings","shared"),{cards:CARDS}); }
 
 function subscribe(){
  if(unsub)unsub();
- unsub=onSnapshot(query(collection(db,"purchases"),where("uid","==",user.uid)),snap=>{
+ unsub=onSnapshot(collection(db,"purchases"),snap=>{
   PURCH=snap.docs.map(d=>({id:d.id,...d.data()}));
   renderAll();
  },err=>{ console.error("snapshot",err); });
@@ -701,12 +703,15 @@ if(!CONFIGURED){
  fillSelectors();renderConfig();renderAll();
 }else{
  $("signinBtn").onclick=async()=>{
-  const provider=new GoogleAuthProvider();
-  try{ await signInWithPopup(auth,provider); }
-  catch(e){ try{ await signInWithRedirect(auth,provider); }catch(e2){ showLogin(e2.message); } }
+  const email=$("gateEmail").value.trim(), pass=$("gatePass").value;
+  if(!email||!pass){ showLogin("Enter your email and password."); return; }
+  $("signinBtn").disabled=true; $("gateErr").style.display="none";
+  try{ await signInWithEmailAndPassword(auth,email,pass); }
+  catch(e){ showLogin("Sign-in failed — check your email and password."); }
+  $("signinBtn").disabled=false;
  };
+ $("gatePass").addEventListener("keydown",e=>{ if(e.key==="Enter") $("signinBtn").click(); });
  $("signoutBtn").onclick=()=>signOut(auth);
- getRedirectResult(auth).catch(()=>{});
  onAuthStateChanged(auth, async u=>{
   if(u){ user=u; $("whoami").textContent=u.email||u.displayName||"Signed in"; showApp();
    await loadSettings(); fillSelectors(); renderConfig(); subscribe(); renderAll();
